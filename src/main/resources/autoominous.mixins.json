@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.autoominous.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MinecraftTickMixin",
+    "AutoTpaTickMixin",
+    "MessageHandlerMixin",
+    "DisconnectTickMixin",
+    "DisconnectConnectScreenMixin",
+    "DisconnectDisconnectedScreenMixin",
+    "StatsTickMixin",
+    "StatsHudMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

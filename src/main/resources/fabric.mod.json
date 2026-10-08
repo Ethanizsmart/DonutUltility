@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "donututility",
+  "version": "1.1.4",
+  "name": "Donut Utility",
+  "description": "Standalone Donut SMP client utility: Auto TPA, Disconnect Handling with optional Auto Reconnect, Death Recovery, /sell automation, separate Stats/Auto Reconnect/Bounty HUDs, and Auto Bounty with exclusive container-GUI ownership during bounty transactions.",
+  "authors": [
+    "OpenAI for user-requested project"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "dev.autoominous.AutoOminousMod"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "autoominous.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "malilib": ">=0.27.14- <0.28.0-"
+  }
+}
