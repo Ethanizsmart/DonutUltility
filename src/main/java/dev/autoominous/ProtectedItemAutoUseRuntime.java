@@ -22,6 +22,7 @@ public final class ProtectedItemAutoUseRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) { forceRelease(); return; }
       Object var0 = getMinecraftClient();
       boolean var1 = isEnabled();
       persistToggleIfChanged(var1);

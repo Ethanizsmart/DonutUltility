@@ -8,6 +8,7 @@ public final class AutoSellRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {  return; }
       CompactSlashSellSettings.syncToOriginal();
       boolean var0 = SlashSellSettings.isEnabled();
       if (!stateKnown) {

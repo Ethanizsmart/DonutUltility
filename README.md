@@ -1,6 +1,6 @@
 # Donut Utility — source khôi phục
 
-Project Fabric cho Minecraft **1.21.11**, mod ID `donututility`, phiên bản **1.1.4**.
+Project Fabric cho Minecraft **1.21.11**, mod ID `donututility`, phiên bản **1.1.5**.
 Source giữ tên Minecraft **Intermediary** (`class_*`, `method_*`, `field_*`).
 
 ## Build trên máy hiện tại
@@ -19,8 +19,8 @@ Trên máy khác, đặt `JAVA_HOME` tới JDK 21 đã cài. Không cần cài G
 Wrapper tải Gradle 9.4.0 và kiểm tra SHA-256 của distribution.
 Không dùng Java 26 trên PATH làm compiler mặc định của project này.
 
-JAR runtime: `build/libs/donututility-1.1.4.jar`.
-JAR source: `build/libs/donututility-1.1.4-sources.jar`.
+JAR runtime: `build/libs/donututility-1.1.5.jar`.
+JAR source: `build/libs/donututility-1.1.5-sources.jar`.
 Không dùng JAR trong `build/devlibs` để cài mod.
 
 Dependencies được ghim trong `build.gradle`: Loader 0.18.4, Fabric API
@@ -77,3 +77,7 @@ hoặc mixin. Sau chỉnh sửa, compile/build lại và kiểm tra riêng hành
 
 Xem [RESTORATION_REPORT.md](RESTORATION_REPORT.md) để biết bằng chứng, giới hạn,
 các thay đổi source và mức sẵn sàng phát triển.
+
+Master automation: starts OFF on every game launch. Press F8 to toggle all configured automation. The master key can be changed in the Utility GUI (X+C), under Toggle All Automation. Turning OFF cancels pending work and releases item use; individual feature settings are preserved.
+
+Auto sell: Ominous Bottles in the 27 main inventory slots are sold; Ominous Bottles in the 9 hotbar slots remain protected.

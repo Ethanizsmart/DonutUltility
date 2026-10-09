@@ -307,7 +307,7 @@ public final class HumanizedSellRuntime {
 
          for (int var4 = var3; var4 < var2; var4++) {
             class_1799 var5 = var0.method_7611(var4).method_7677();
-            if (!var5.method_7960() && !AutoSellLogic.isProtectedNeverSellItem(var5) && class_1799.method_31577(var5, var1)) {
+            if (AutoSellLogic.isSellableInventorySlot(class_310.method_1551(), var0.method_7611(var4)) && class_1799.method_31577(var5, var1)) {
                return var4;
             }
          }
@@ -317,8 +317,7 @@ public final class HumanizedSellRuntime {
    }
 
    private static boolean isSellable(class_1703 var0, int var1) {
-      class_1799 var2 = var0.method_7611(var1).method_7677();
-      return !var2.method_7960() && !AutoSellLogic.isProtectedNeverSellItem(var2);
+      return AutoSellLogic.isSellableInventorySlot(class_310.method_1551(), var0.method_7611(var1));
    }
 
    private static int findEmptySellSlot(class_1703 var0) {

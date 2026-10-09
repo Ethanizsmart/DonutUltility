@@ -32,6 +32,7 @@ public final class DisconnectRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {  return; }
       BountyRecoveryBridge.onTick();
       if (DisconnectSettings.isEnabled()) {
          class_310 var0 = class_310.method_1551();

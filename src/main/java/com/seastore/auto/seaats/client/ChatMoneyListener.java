@@ -22,6 +22,7 @@ public final class ChatMoneyListener {
 
    public static void register() {
       ClientReceiveMessageEvents.ALLOW_GAME.register((AllowGame)(var0, var1) -> {
+         if (!dev.autoominous.MasterAutomation.isEnabled()) return true;
          if (AutoSellLogic.handlePayConfirmation(var0.getString())) {
             return true;
          } else if (AutoSellLogic.handlePayBalanceMessage(var0.getString())) {

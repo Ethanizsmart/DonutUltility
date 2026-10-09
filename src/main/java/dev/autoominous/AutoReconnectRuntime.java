@@ -10,7 +10,10 @@ public final class AutoReconnectRuntime {
    private AutoReconnectRuntime() {
    }
 
+   public static void resetForMaster() { nextAttemptAtMs = 0L; wasTriggered = false; }
+
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) { nextAttemptAtMs = 0L; wasTriggered = false; return; }
       AutoReconnectSettings.maybePersist();
       if (!AutoReconnectSettings.isEnabled()) {
          nextAttemptAtMs = 0L;

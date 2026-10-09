@@ -26,7 +26,9 @@ public final class BountyRuntime {
    private BountyRuntime() {
    }
 
+   public static void resetForMaster() { disable(); enabledKnown = false; }
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) { disable(); enabledKnown = false; return; }
       BountySettings.maybePersist();
       boolean var0 = BountySettings.isEnabled();
       long var1 = System.currentTimeMillis();
@@ -126,6 +128,7 @@ public final class BountyRuntime {
    }
 
    public static void onGameMessageObject(Object var0) {
+      if (!MasterAutomation.isEnabled()) return;
       if (BountySettings.isEnabled() && var0 != null) {
          try {
             onGameMessage(bridge().textToString(var0));

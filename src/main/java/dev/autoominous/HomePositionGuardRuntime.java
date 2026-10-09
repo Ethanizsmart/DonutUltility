@@ -54,7 +54,9 @@ public final class HomePositionGuardRuntime {
    private HomePositionGuardRuntime() {
    }
 
+   public static void resetForMaster() { cancelTransitForHigherPriority("Master OFF", false); captureRequested = false; driftSinceMs = -1L; sawTpaBusy = false; tpaGraceUntilMs = 0L; pauseSwordRecovery = false; }
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {  return; }
       ensureLoaded();
       enforceSwordRecoveryBounds();
       invokeStaticVoid("dev.autoominous.DeathRecoverySettings", "maybePersist");

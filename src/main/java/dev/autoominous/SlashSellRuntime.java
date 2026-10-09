@@ -14,6 +14,7 @@ public final class SlashSellRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {  return; }
       invokeStaticVoid("dev.autoominous.SlashSellSettings", "maybePersist");
       syncSeaConfig();
       boolean var0 = invokeStaticBoolean("dev.autoominous.SlashSellSettings", "isEnabled", false);

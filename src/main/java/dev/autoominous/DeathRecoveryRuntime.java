@@ -21,6 +21,7 @@ public final class DeathRecoveryRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {  return; }
       invokeStaticVoid("dev.autoominous.DeathRecoverySettings", "maybePersist");
       if (!invokeStaticBoolean("dev.autoominous.DeathRecoverySettings", "isEnabled", false)) {
          clearState();

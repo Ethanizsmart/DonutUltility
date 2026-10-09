@@ -15,6 +15,7 @@ import net.minecraft.class_1657;
 import net.minecraft.class_1661;
 import net.minecraft.class_1703;
 import net.minecraft.class_1713;
+import net.minecraft.class_1735;
 import net.minecraft.class_1799;
 import net.minecraft.class_1802;
 import net.minecraft.class_2561;
@@ -115,7 +116,7 @@ public class AutoSellLogic {
          class_1661 var1 = var0.field_1724.method_31548();
 
          for (int var2 = 0; var2 < 36; var2++) {
-            if (!var1.method_5438(var2).method_7960() && !isProtectedNeverSellItem(var1.method_5438(var2))) {
+            if (isSellableInventoryItem(var1.method_5438(var2), var2)) {
                return true;
             }
          }
@@ -308,6 +309,7 @@ public class AutoSellLogic {
    }
 
    public static void tick(class_310 var0) {
+      if (!dev.autoominous.MasterAutomation.isEnabled()) return;
       if (expectedSellReceiptTicks > 0) {
          expectedSellReceiptTicks--;
       }
@@ -492,8 +494,7 @@ public class AutoSellLogic {
                                        boolean var19 = false;
 
                                        for (int var7 = var17; var7 < var10.field_7761.size(); var7++) {
-                                          if (!var10.method_7611(var7).method_7677().method_7960()
-                                             && !isProtectedNeverSellItem(var10.method_7611(var7).method_7677())) {
+                                          if (isSellableInventorySlot(var0, var10.method_7611(var7))) {
                                              var0.field_1761.method_2906(var10.field_7763, var7, 0, class_1713.field_7794, var0.field_1724);
                                              var19 = true;
                                           }
@@ -1035,6 +1036,23 @@ public class AutoSellLogic {
       long var6 = var2 % 3600L / 60L;
       long var8 = var2 % 60L;
       return String.format("%02d:%02d:%02d", var4, var6, var8);
+   }
+
+   static boolean isSellableInventoryItem(class_1799 stack, int inventoryIndex) {
+      if (stack.method_7960()) {
+         return false;
+      }
+      if (stack.method_31574(class_1802.field_50140)) {
+         // Player inventory indices 0..8 are the hotbar; 9..35 are the main inventory.
+         return inventoryIndex >= 9 && inventoryIndex < 36;
+      }
+      return !isProtectedNeverSellItem(stack);
+   }
+
+   static boolean isSellableInventorySlot(class_310 client, class_1735 slot) {
+      return client.field_1724 != null
+         && slot.field_7871 == client.field_1724.method_31548()
+         && isSellableInventoryItem(slot.method_7677(), slot.method_34266());
    }
 
    static boolean isProtectedNeverSellItem(class_1799 var0) {

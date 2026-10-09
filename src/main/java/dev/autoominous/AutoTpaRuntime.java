@@ -26,6 +26,7 @@ public final class AutoTpaRuntime {
    }
 
    public static void onGameMessageObject(Object var0) {
+      if (!MasterAutomation.isEnabled()) return;
       if (var0 != null) {
          String var1 = extractPlainText(var0);
          if (var1 != null) {
@@ -59,6 +60,7 @@ public final class AutoTpaRuntime {
    }
 
    public static void onGameMessage(String var0) {
+      if (!MasterAutomation.isEnabled()) return;
       if (AutoTpaSettings.isEnabled() && var0 != null && !var0.isBlank()) {
          Matcher var1 = TELEPORT_HERE.matcher(var0.replace('\r', '\n'));
 
@@ -83,7 +85,9 @@ public final class AutoTpaRuntime {
       }
    }
 
+   public static void resetForMaster() { clearAll(); }
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) { clearAll(); return; }
       AutoTpaSettings.maybePersist();
       if (!VexSafetyRuntime.allowAutoTpa(AutoTpaSettings.isEnabled())) {
          clearAll();

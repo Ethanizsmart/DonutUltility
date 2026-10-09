@@ -20,6 +20,7 @@ public final class AutoOminousInputHandler implements IKeybindProvider {
    }
 
    public static void initCallbacks() {
+      AutoOminousSettings.MASTER_TOGGLE.getKeybind().setCallback((action, keybind) -> { dev.autoominous.MasterAutomation.toggle(); return true; });
       AutoOminousSettings.OPEN_CONFIG.getKeybind().setCallback((var0, var1) -> {
          GuiBase.openGui(new AutoOminousGuiConfigs());
          return true;
@@ -27,6 +28,7 @@ public final class AutoOminousInputHandler implements IKeybindProvider {
    }
 
    public void addKeysToMap(IKeybindManager var1) {
+      var1.addKeybindToMap(AutoOminousSettings.MASTER_TOGGLE.getKeybind());
       var1.addKeybindToMap(AutoOminousSettings.OPEN_CONFIG.getKeybind());
       var1.addKeybindToMap(SlashSellSettings.AUTO_SLASH_SELL.getKeybind());
       var1.addKeybindToMap(BountySettings.AUTO_BOUNTY.getKeybind());
@@ -34,7 +36,7 @@ public final class AutoOminousInputHandler implements IKeybindProvider {
 
    public void addHotkeys(IKeybindManager var1) {
       var1.addHotkeysForCategory(
-         "Donut Utility", "Donut Utility Hotkeys", List.of(AutoOminousSettings.OPEN_CONFIG, SlashSellSettings.AUTO_SLASH_SELL, BountySettings.AUTO_BOUNTY)
+         "Donut Utility", "Donut Utility Hotkeys", List.of(AutoOminousSettings.MASTER_TOGGLE, AutoOminousSettings.OPEN_CONFIG, SlashSellSettings.AUTO_SLASH_SELL, BountySettings.AUTO_BOUNTY)
       );
    }
 }

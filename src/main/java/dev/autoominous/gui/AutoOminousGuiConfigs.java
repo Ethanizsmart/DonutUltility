@@ -103,7 +103,7 @@ public final class AutoOminousGuiConfigs extends GuiConfigsBase {
          case STATS -> StatsSettings.ALL_OPTIONS;
          case BOUNTY -> merged(BountySettings.ALL_OPTIONS, BountyHudSettings.ALL_OPTIONS);
       };
-      return ConfigOptionWrapper.createFor(var1);
+      return ConfigOptionWrapper.createFor(merged(List.of(dev.autoominous.AutoOminousSettings.MASTER_TOGGLE), var1));
    }
 
    private static List<IConfigBase> merged(List<? extends IConfigBase> var0, List<? extends IConfigBase> var1) {
