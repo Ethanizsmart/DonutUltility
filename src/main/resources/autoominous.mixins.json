@@ -4,6 +4,7 @@
   "package": "dev.autoominous.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "DialogScreenAccessor",
     "MinecraftTickMixin",
     "AutoTpaTickMixin",
     "MessageHandlerMixin",

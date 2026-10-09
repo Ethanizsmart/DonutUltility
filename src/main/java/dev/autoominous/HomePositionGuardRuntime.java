@@ -58,7 +58,6 @@ public final class HomePositionGuardRuntime {
    public static void onTick() {
       if (!MasterAutomation.isEnabled()) {  return; }
       ensureLoaded();
-      enforceSwordRecoveryBounds();
       invokeStaticVoid("dev.autoominous.DeathRecoverySettings", "maybePersist");
       long var0 = System.currentTimeMillis();
       Object var2 = getMinecraftClient();
@@ -146,64 +145,12 @@ public final class HomePositionGuardRuntime {
       cancelTransitForHigherPriority("Death Recovery", false);
    }
 
-   public static boolean enforceSwordRecoveryBounds() {
-      if (!isDeathRecoveryPending()) {
-         return false;
-      } else {
-         try {
-            Class var0 = Class.forName("dev.autoominous.SwordRecoveryRuntime");
-            String var1 = swordStateName();
-            long var2 = System.currentTimeMillis();
-            long var4 = declaredField(var0, "stateDeadlineMs").getLong(null);
-            if ("FREE_SPACE".equals(var1) && var4 > 0L && var2 >= var4) {
-               abortSwordRecovery("free-space timeout");
-               return true;
-            }
-         } catch (Throwable var6) {
-            System.err.println("[Auto Ominous] Sword Recovery bound check failed: " + var6.getMessage());
-         }
-
-         return false;
-      }
-   }
-
    public static boolean isBlockingSell() {
       return isBlockingAutomation() || invokeStaticBoolean("dev.autoominous.BountyRuntime", "isBlockingSell", false);
    }
 
    public static boolean shouldPauseSwordRecovery() {
       return transit != HomePositionGuardRuntime.Transit.NONE && pauseSwordRecovery;
-   }
-
-   public static int adjustSwordRecoverySearchResult(int var0) {
-      return isSwordRecoveryEnabled() ? var0 : 0;
-   }
-
-   public static void handleSwordRecoveryRetry(long var0) {
-      try {
-         if (!isSwordRecoveryEnabled()) {
-            abortSwordRecovery("disabled");
-            return;
-         }
-
-         Class var2 = Class.forName("dev.autoominous.SwordRecoveryRuntime");
-         Field var3 = declaredField(var2, "retries");
-         int var4 = var3.getInt(null) + 1;
-         if (var4 >= 3) {
-            abortSwordRecovery("3 attempts exhausted");
-            return;
-         }
-
-         var3.setInt(null, var4);
-         setSwordState("OPEN_ORDER");
-         declaredField(var2, "nextActionAtMs").setLong(null, var0 + random(400, 900));
-         declaredField(var2, "stateDeadlineMs").setLong(null, var0 + 6000L);
-         declaredField(var2, "allowAutoSell").setBoolean(null, false);
-         System.out.println("[Auto Ominous] Sword Recovery: retry " + var4 + "/2 before terminal abort.");
-      } catch (Throwable var5) {
-         System.err.println("[Auto Ominous] Sword Recovery retry gate failed: " + var5.getMessage());
-         abortSwordRecovery("retry gate error");
-      }
    }
 
    public static void injectGuiControls(Object var0) {
@@ -469,10 +416,11 @@ public final class HomePositionGuardRuntime {
 
          String var2 = pausedSwordState;
          String var3;
-         if (!"WAIT_ROOT".equals(var2) && !"WAIT_YOUR".equals(var2) && !"WAIT_EDIT".equals(var2) && !"WAIT_COLLECT".equals(var2) && !"OPEN_ORDER".equals(var2)) {
+         if (!"WAIT_AUCTION".equals(var2) && !"SET_FILTER".equals(var2) && !"SCAN_AUCTION".equals(var2)
+            && !"WAIT_PURCHASE".equals(var2) && !"VERIFY_PURCHASE".equals(var2) && !"OPEN_AUCTION".equals(var2)) {
             var3 = "CHECK_LOCAL";
          } else {
-            var3 = "OPEN_ORDER";
+            var3 = "OPEN_AUCTION";
          }
 
          Class var4 = Class.forName("dev.autoominous.SwordRecoveryRuntime");
@@ -480,26 +428,9 @@ public final class HomePositionGuardRuntime {
          declaredField(var4, "nextActionAtMs").setLong(null, var0 + 300L);
          declaredField(var4, "stateDeadlineMs").setLong(null, var0 + 6000L);
          declaredField(var4, "allowAutoSell").setBoolean(null, false);
-         System.out.println("[Auto Ominous] Home Guard: resumed Sword Recovery at " + var3 + " without resetting retry budget.");
+         System.out.println("[Auto Ominous] Home Guard: resumed Auction Sword Recovery at " + var3 + ".");
       } catch (Throwable var5) {
          System.err.println("[Auto Ominous] Home Guard: resume Sword Recovery failed: " + var5.getMessage());
-      }
-   }
-
-   private static void abortSwordRecovery(String var0) {
-      try {
-         Object var1 = getMinecraftClient();
-         Object var2 = var1 == null ? null : getField(var1, "field_1724");
-         if (var1 != null) {
-            closeHandledScreen(var1, var2);
-         }
-
-         invokeStaticVoid("dev.autoominous.ProtectedItemAutoUseRuntime", "forceRelease");
-         invokeStaticVoid("dev.autoominous.SlashSellRuntime", "resetRuntime");
-         System.err.println("[Auto Ominous] Sword Recovery: terminal abort (" + var0 + "); will not retry until a new death event.");
-         invokeStaticVoid("dev.autoominous.DeathRecoveryRuntime", "completeAfterSwordRecovery");
-         requestAutoUseRearm();
-      } catch (Throwable var3) {
       }
    }
 

@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-version = '1.1.5'
+version = '1.1.6'
 group = 'dev.autoominous'
 
 repositories {
@@ -58,3 +58,16 @@ tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
+
+sourceSets {
+    auctionChecks {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+tasks.register('verifyAuctionSwordRules', JavaExec) {
+    dependsOn auctionChecksClasses
+    classpath = sourceSets.auctionChecks.runtimeClasspath
+    mainClass = 'dev.autoominous.AuctionSwordRulesChecks'
+}
+tasks.named('check') { dependsOn 'verifyAuctionSwordRules' }

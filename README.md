@@ -1,6 +1,6 @@
 # Donut Utility — source khôi phục
 
-Project Fabric cho Minecraft **1.21.11**, mod ID `donututility`, phiên bản **1.1.5**.
+Project Fabric cho Minecraft **1.21.11**, mod ID `donututility`, phiên bản **1.1.6**.
 Source giữ tên Minecraft **Intermediary** (`class_*`, `method_*`, `field_*`).
 
 ## Build trên máy hiện tại
@@ -19,8 +19,8 @@ Trên máy khác, đặt `JAVA_HOME` tới JDK 21 đã cài. Không cần cài G
 Wrapper tải Gradle 9.4.0 và kiểm tra SHA-256 của distribution.
 Không dùng Java 26 trên PATH làm compiler mặc định của project này.
 
-JAR runtime: `build/libs/donututility-1.1.5.jar`.
-JAR source: `build/libs/donututility-1.1.5-sources.jar`.
+JAR runtime: `build/libs/donututility-1.1.6.jar`.
+JAR source: `build/libs/donututility-1.1.6-sources.jar`.
 Không dùng JAR trong `build/devlibs` để cài mod.
 
 Dependencies được ghim trong `build.gradle`: Loader 0.18.4, Fabric API
@@ -81,3 +81,12 @@ các thay đổi source và mức sẵn sàng phát triển.
 Master automation: starts OFF on every game launch. Press F8 to toggle all configured automation. The master key can be changed in the Utility GUI (X+C), under Toggle All Automation. Turning OFF cancels pending work and releases item use; individual feature settings are preserved.
 
 Auto sell: Ominous Bottles in the 27 main inventory slots are sold; Ominous Bottles in the 9 hotbar slots remain protected.
+
+Sword recovery after death now uses `/ah sword looting 3` instead of `/order`.
+After the home position settles, it checks for an existing Diamond Sword with actual Looting III.
+If all 27 main inventory slots are occupied, configured Auto /sell may run until a main slot is free.
+The Auction filter is the hopper in the 48th cell (slot ID 47). The active option is detected from the bright label color in the styled tooltip, while inactive options are dark gray. The recovery left-clicks only when Highest Price or Recently Listed is active. When Lowest Price is bright, it stops clicking and chooses the cheapest eligible sword on the sorted first page, with a hard price cap of $5,000,000. If colors are ambiguous or menu contents incomplete, it waits rather than cycling blindly.
+Listings with missing, ambiguous or unsupported prices are skipped. Prices support $ amounts and K/M/B suffixes.
+Purchase confirmation supports both container menus and the native Yes/No dialog titled "Are you sure you want to buy this?". The displayed sword must match the selected Looting III sword, and the displayed price must equal the selected price and remain at or below $5,000,000. For the native dialog, action buttons are found recursively inside the scrollable body and the real Yes button callback is invoked once; recovery then waits for the inventory update before proceeding. Missing or conflicting prices are not confirmed. Unrecognized confirmations are closed and the search retries.
+If no suitable listing is found, menus time out, or purchase verification fails, the search repeats with a 2–3 second pause. Recovery finishes only after a verified Looting III Diamond Sword is in the hotbar.
+`gradlew.bat verifyAuctionSwordRules` runs the offline price/filter regression checks (also included in `build`). Live debugger inspection verified the actual purchase dialog title, matching Looting III enchantments, $1.5M price, and Yes/No buttons nested inside the scrollable body. After the recursive button fix, the Yes callback completed and recovery entered VERIFY_PURCHASE. Auto-use debugging verified hotbar sword selection, use-key holding and repeat calls. End-to-end receipt was not captured in that debug session; the user subsequently confirmed the current version was working.
