@@ -22,6 +22,7 @@ public final class AutoSellRuntime {
       AutoReconnectRuntime.onTick();
       BountyHudSettings.maybePersist();
       BountyRuntime.onTick();
+      SwordRecoveryRuntime.onTick();
       if (!HomePositionGuardRuntime.isBlockingSell()) {
          SlashSellRuntime.onTick();
       }

@@ -15,13 +15,13 @@ import java.util.Properties;
 
 public final class DeathRecoverySettings {
    public static final ConfigBoolean AUTO_DEATH_RECOVERY = new ConfigBoolean("Auto Death Recovery", false);
-   public static final ConfigBoolean RECOVER_SWORD_AFTER_DEATH = new ConfigBoolean("Recover Sword After Death", true);
+   public static final ConfigBoolean RECOVER_SWORD_AFTER_DEATH = new ConfigBoolean("Auto Buy Sword", true, "Buy a Diamond Sword with Looting III when none is present in inventory for 5 seconds. Independent of Auto Death Recovery.");
    public static final ConfigBoolean HOME_1_POSITION_GUARD = new ConfigBoolean("Home 1 Position Guard", false);
    public static final ConfigInteger RESPAWN_DELAY_MS = new ConfigInteger(
       "Respawn Delay (ms)", 2000, 0, 30000, "Wait after the death screen appears before automatically respawning."
    );
    public static final ConfigInteger HOME_DELAY_MS = new ConfigInteger(
-      "Home Delay (ms)", 1500, 0, 30000, "Wait after respawn before sending the selected home command."
+      "Home Delay (ms)", 1500, 0, 30000, "Wait after respawn before sending the Home 1 command."
    );
    public static final ConfigString HOME_COMMAND_1 = new ConfigString("Home 1 CMD", "/home 1");
    public static final ConfigString HOME_COMMAND_2 = new ConfigString("Home 2 CMD", "/home 2");

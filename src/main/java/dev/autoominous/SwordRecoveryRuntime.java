@@ -1,8 +1,6 @@
 package dev.autoominous;
 
-import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 import net.minecraft.class_1661;
 import net.minecraft.class_1703;
@@ -18,22 +16,14 @@ import net.minecraft.class_634;
 import net.minecraft.class_7923;
 
 public final class SwordRecoveryRuntime {
-   private static long homeStamp = Long.MIN_VALUE;
-   private static SwordRecoveryRuntime.State state = SwordRecoveryRuntime.State.WAIT_STABLE;
+   private static boolean recoveryActive;
+   private static final MissingSwordTimer missingSwordTimer = new MissingSwordTimer();
+   private static Object observedPlayer;
+   private static Object observedWorld;
+   private static SwordRecoveryRuntime.State state = State.CHECK_LOCAL;
    private static long nextActionAtMs;
    private static long stateDeadlineMs;
    private static boolean allowAutoSell;
-   private static long armedHomeStamp = Long.MIN_VALUE;
-   private static boolean homeGateArmed;
-   private static Object preHomeWorld;
-   private static double preHomeX;
-   private static double preHomeY;
-   private static double preHomeZ;
-   private static boolean teleportSeen;
-   private static long stableSinceMs;
-   private static double lastGateX;
-   private static double lastGateY;
-   private static double lastGateZ;
    private static class_1799 purchaseSword;
    private static long purchasePrice;
    private static class_1703 purchaseHandler;
@@ -45,286 +35,252 @@ public final class SwordRecoveryRuntime {
    private SwordRecoveryRuntime() {
    }
 
-   public static boolean onPostHomeTick(long var0) {
-      if (!MasterAutomation.isEnabled()) return false;
-      if (!DeathRecoverySettings.isSwordRecoveryEnabled()) {
-         class_310 client = class_310.method_1551();
-         if (client != null && client.field_1724 != null) closeRecoveryScreen(client);
+   public static void onTick() {
+      class_310 client = class_310.method_1551();
+      DeathRecoverySettings.maybePersist();
+      if (!MasterAutomation.isEnabled() || !DeathRecoverySettings.isSwordRecoveryEnabled()) {
+         if (recoveryActive && client != null && client.field_1724 != null) closeRecoveryScreen(client);
          forceReset();
-         DeathRecoveryRuntime.completeAfterSwordRecovery();
-         return true;
+         return;
       }
-      if (HomePositionGuardRuntime.shouldPauseSwordRecovery()) {
+      if (client == null || client.field_1724 == null || client.field_1687 == null
+         || client.field_1761 == null || client.method_1562() == null
+         || !client.field_1724.method_5805()) {
+         forceReset();
+         return;
+      }
+      if (observedPlayer != client.field_1724 || observedWorld != client.field_1687) {
+         forceReset();
+         observedPlayer = client.field_1724;
+         observedWorld = client.field_1687;
+      }
+      if (DeathRecoveryRuntime.isRecoveryPending()) {
+         forceReset();
+         return;
+      }
+      if (HomePositionGuardRuntime.isBlockingAutomation() || BountyRuntime.isBlockingSell()) {
+         missingSwordTimer.reset();
+         return;
+      }
+      long now = System.currentTimeMillis();
+      if (!recoveryActive) {
+         boolean absentForFiveSeconds = missingSwordTimer.update(findLootingDiamondSword(client, true) < 0, now);
+         // Keep observing inventory during /sell, but wait for its screen to close before buying.
+         if (!absentForFiveSeconds || client.field_1755 != null) return;
+         recoveryActive = true;
+         state = State.CHECK_LOCAL;
+         nextActionAtMs = now;
+      }
+      tickRecovery(now, client);
+   }
+
+   public static boolean isRecoveryActive() {
+      return recoveryActive;
+   }
+
+   private static boolean tickRecovery(long var2, class_310 var4) {
+      if (var2 < nextActionAtMs) {
          return false;
       } else {
-         long var2 = System.currentTimeMillis();
-         class_310 var4 = class_310.method_1551();
-         if (var4 != null && var4.field_1724 != null && var4.field_1761 != null) {
-            if (homeStamp != var0) {
-               startNew(var4, var0, var2);
-            }
+         try {
+            switch (state) {
+               case CHECK_LOCAL:
+                  int var19 = findLootingDiamondSword(var4, true);
+                  if (var19 >= 0) {
+                     if (var19 < 9) {
+                        return finish(var4);
+                     }
 
-            if (var2 < nextActionAtMs) {
-               return false;
-            } else {
-               try {
-                  switch (state) {
-                     case WAIT_STABLE:
-                        if (homeGateArmed && armedHomeStamp == var0) {
-                           double[] var20 = position(var4.field_1724);
-                           if (var20 == null) {
-                              nextActionAtMs = var2 + 100L;
-                              return false;
-                           }
+                     closeRecoveryScreen(var4);
+                     swapInventorySlotToHotbarZero(var4, var19);
+                     state = SwordRecoveryRuntime.State.VERIFY_HOTBAR;
+                     stateDeadlineMs = var2 + 3000L;
+                     nextActionAtMs = var2 + random(250, 500);
+                  } else if (!hasEmptyMainSlot(var4)) {
+                     beginFreeSpace(var4, var2);
+                  } else {
+                     state = SwordRecoveryRuntime.State.OPEN_AUCTION;
+                     nextActionAtMs = var2 + random(250, 500);
+                  }
+                  break;
+               case FREE_SPACE:
+                  // Empty slots while /sell is still open may only reflect staged, unsold items.
+                  if (hasEmptyMainSlot(var4)
+                     && var4.field_1724.field_7512 == var4.field_1724.field_7498
+                     && !(var4.field_1755 instanceof class_465)) {
+                     suspendAutoSellNow();
+                     closeRecoveryScreen(var4);
+                     state = SwordRecoveryRuntime.State.OPEN_AUCTION;
+                     nextActionAtMs = var2 + random(400, 800);
+                  } else {
+                     if (var2 >= stateDeadlineMs) {
+                        SlashSellRuntime.resetRuntime();
+                        stateDeadlineMs = var2 + 30000L;
+                     }
 
-                           Object var24 = reflectedField(var4, "field_1687");
-                           boolean var7 = preHomeWorld != null && var24 != null && var24 != preHomeWorld;
-                           double var8 = distanceSq(var20[0], var20[1], var20[2], preHomeX, preHomeY, preHomeZ);
-                           if (!teleportSeen) {
-                              if (!var7 && !(var8 >= 16.0)) {
-                                 if (var2 >= stateDeadlineMs) {
-                                    System.out.println("[Auto Ominous] Sword Recovery: /home position not confirmed within 10s; retrying /home.");
-                                    forceReset();
-                                    DeathRecoveryRuntime.retryHomeCommand();
-                                    return false;
-                                 }
-
-                                 nextActionAtMs = var2 + 100L;
-                                 return false;
-                              }
-
-                              teleportSeen = true;
-                              stableSinceMs = var2;
-                              lastGateX = var20[0];
-                              lastGateY = var20[1];
-                              lastGateZ = var20[2];
-                              System.out.println("[Auto Ominous] Sword Recovery: /home teleport detected; waiting for position to settle.");
-                              nextActionAtMs = var2 + 100L;
-                              return false;
-                           }
-
-                           double var10 = distanceSq(var20[0], var20[1], var20[2], lastGateX, lastGateY, lastGateZ);
-                           lastGateX = var20[0];
-                           lastGateY = var20[1];
-                           lastGateZ = var20[2];
-                           if (var10 > 0.25) {
-                              stableSinceMs = var2;
-                           }
-
-                           if (var2 - stableSinceMs < 650L) {
-                              nextActionAtMs = var2 + 100L;
-                              return false;
-                           }
-
-                           System.out.println("[Auto Ominous] Sword Recovery: home position confirmed stable; starting sword check.");
-                           state = SwordRecoveryRuntime.State.CHECK_LOCAL;
-                           nextActionAtMs = var2 + random(150, 350);
+                     nextActionAtMs = var2 + random(200, 450);
+                  }
+                  break;
+               case OPEN_AUCTION:
+                  int existing = findLootingDiamondSword(var4, true);
+                  if (existing >= 0) {
+                     state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
+                     nextActionAtMs = var2 + 250L;
+                  } else if (!hasEmptyMainSlot(var4)) {
+                     beginFreeSpace(var4, var2);
+                  } else {
+                     suspendAutoSellNow();
+                     closeRecoveryScreen(var4);
+                     clearPurchase();
+                     sendCommand(var4, "ah sword looting 3");
+                     state = SwordRecoveryRuntime.State.WAIT_AUCTION;
+                     stateDeadlineMs = var2 + 8000L;
+                     nextActionAtMs = var2 + random(500, 900);
+                  }
+                  break;
+               case WAIT_AUCTION:
+                  if (auctionHandler(var4) != null) {
+                     state = SwordRecoveryRuntime.State.SET_FILTER;
+                     stateDeadlineMs = var2 + 10000L;
+                     nextActionAtMs = var2 + 400L;
+                  } else if (var2 >= stateDeadlineMs) {
+                     reopenAuction(var4, var2);
+                  } else {
+                     nextActionAtMs = var2 + 150L;
+                  }
+                  break;
+               case SET_FILTER:
+                  class_1703 filterMenu = auctionHandler(var4);
+                  AuctionSwordRules.FilterMode filterMode = filterMenu == null
+                     ? AuctionSwordRules.FilterMode.UNKNOWN : selectedFilter(var4, filterMenu);
+                  if (filterMenu == null) {
+                     reopenAuction(var4, var2);
+                  } else if (filterMode == AuctionSwordRules.FilterMode.LOWEST_PRICE) {
+                     state = SwordRecoveryRuntime.State.SCAN_AUCTION;
+                     nextActionAtMs = var2 + 500L;
+                  } else if (var2 >= stateDeadlineMs) {
+                     reopenAuction(var4, var2);
+                  } else {
+                     int filterSlot = findFilterSlot(filterMenu);
+                     if (filterSlot >= 0 && (filterMode == AuctionSwordRules.FilterMode.HIGHEST_PRICE
+                        || filterMode == AuctionSwordRules.FilterMode.RECENTLY_LISTED)) {
+                        clickTopSlot(var4, filterSlot, class_1713.field_7790);
+                        nextActionAtMs = var2 + 700L;
+                     } else {
+                        nextActionAtMs = var2 + 200L;
+                     }
+                  }
+                  break;
+               case SCAN_AUCTION:
+                  class_1703 auctionMenu = auctionHandler(var4);
+                  if (auctionMenu == null || !lowestPriceSelected(var4, auctionMenu)) {
+                     reopenAuction(var4, var2);
+                  } else if (!hasEmptyMainSlot(var4)) {
+                     beginFreeSpace(var4, var2);
+                  } else {
+                     AuctionListing cheapest = findCheapestSword(var4, auctionMenu);
+                     if (cheapest == null) {
+                        reopenAuction(var4, var2);
+                     } else {
+                        // Recheck the live slot before issuing a purchase click.
+                        class_1799 stack = auctionMenu.method_7611(cheapest.slot()).method_7677();
+                        java.util.OptionalLong currentPrice = AuctionSwordRules.price(tooltip(var4, stack));
+                        if (!isDiamondSword(stack) || !hasLootingThree(var4, stack)
+                           || currentPrice.isEmpty() || currentPrice.getAsLong() != cheapest.price()
+                           || !AuctionSwordRules.affordable(currentPrice.getAsLong())) {
+                           reopenAuction(var4, var2);
                            break;
                         }
-
-                        armFromCurrent(var4, var0, var2);
-                        return false;
-                     case CHECK_LOCAL:
-                        int var19 = findLootingDiamondSword(var4, true);
-                        if (var19 >= 0) {
-                           if (var19 < 9) {
-                              return finish(var4);
-                           }
-
-                           closeRecoveryScreen(var4);
-                           swapInventorySlotToHotbarZero(var4, var19);
-                           state = SwordRecoveryRuntime.State.VERIFY_HOTBAR;
-                           stateDeadlineMs = var2 + 3000L;
-                           nextActionAtMs = var2 + random(250, 500);
-                        } else if (!hasEmptyMainSlot(var4)) {
-                           beginFreeSpace(var4, var2);
-                        } else {
-                           state = SwordRecoveryRuntime.State.OPEN_AUCTION;
-                           nextActionAtMs = var2 + random(250, 500);
-                        }
-                        break;
-                     case FREE_SPACE:
-                        // Empty slots while /sell is still open may only reflect staged, unsold items.
-                        if (hasEmptyMainSlot(var4)
-                           && var4.field_1724.field_7512 == var4.field_1724.field_7498
-                           && !(var4.field_1755 instanceof class_465)) {
-                           suspendAutoSellNow();
-                           closeRecoveryScreen(var4);
-                           state = SwordRecoveryRuntime.State.OPEN_AUCTION;
-                           nextActionAtMs = var2 + random(400, 800);
-                        } else {
-                           if (var2 >= stateDeadlineMs) {
-                              SlashSellRuntime.resetRuntime();
-                              stateDeadlineMs = var2 + 30000L;
-                           }
-
-                           nextActionAtMs = var2 + random(200, 450);
-                        }
-                        break;
-                     case OPEN_AUCTION:
-                        int existing = findLootingDiamondSword(var4, true);
-                        if (existing >= 0) {
-                           state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
-                           nextActionAtMs = var2 + 250L;
-                        } else if (!hasEmptyMainSlot(var4)) {
-                           beginFreeSpace(var4, var2);
-                        } else {
-                           suspendAutoSellNow();
-                           closeRecoveryScreen(var4);
-                           clearPurchase();
-                           sendCommand(var4, "ah sword looting 3");
-                           state = SwordRecoveryRuntime.State.WAIT_AUCTION;
-                           stateDeadlineMs = var2 + 8000L;
-                           nextActionAtMs = var2 + random(500, 900);
-                        }
-                        break;
-                     case WAIT_AUCTION:
-                        if (auctionHandler(var4) != null) {
-                           state = SwordRecoveryRuntime.State.SET_FILTER;
-                           stateDeadlineMs = var2 + 10000L;
-                           nextActionAtMs = var2 + 400L;
-                        } else if (var2 >= stateDeadlineMs) {
-                           reopenAuction(var4, var2);
-                        } else {
-                           nextActionAtMs = var2 + 150L;
-                        }
-                        break;
-                     case SET_FILTER:
-                        class_1703 filterMenu = auctionHandler(var4);
-                        AuctionSwordRules.FilterMode filterMode = filterMenu == null
-                           ? AuctionSwordRules.FilterMode.UNKNOWN : selectedFilter(var4, filterMenu);
-                        if (filterMenu == null) {
-                           reopenAuction(var4, var2);
-                        } else if (filterMode == AuctionSwordRules.FilterMode.LOWEST_PRICE) {
-                           state = SwordRecoveryRuntime.State.SCAN_AUCTION;
-                           nextActionAtMs = var2 + 500L;
-                        } else if (var2 >= stateDeadlineMs) {
-                           reopenAuction(var4, var2);
-                        } else {
-                           int filterSlot = findFilterSlot(filterMenu);
-                           if (filterSlot >= 0 && (filterMode == AuctionSwordRules.FilterMode.HIGHEST_PRICE
-                              || filterMode == AuctionSwordRules.FilterMode.RECENTLY_LISTED)) {
-                              clickTopSlot(var4, filterSlot, class_1713.field_7790);
-                              nextActionAtMs = var2 + 700L;
-                           } else {
-                              nextActionAtMs = var2 + 200L;
-                           }
-                        }
-                        break;
-                     case SCAN_AUCTION:
-                        class_1703 auctionMenu = auctionHandler(var4);
-                        if (auctionMenu == null || !lowestPriceSelected(var4, auctionMenu)) {
-                           reopenAuction(var4, var2);
-                        } else if (!hasEmptyMainSlot(var4)) {
-                           beginFreeSpace(var4, var2);
-                        } else {
-                           AuctionListing cheapest = findCheapestSword(var4, auctionMenu);
-                           if (cheapest == null) {
-                              reopenAuction(var4, var2);
-                           } else {
-                              // Recheck the live slot before issuing a purchase click.
-                              class_1799 stack = auctionMenu.method_7611(cheapest.slot()).method_7677();
-                              java.util.OptionalLong currentPrice = AuctionSwordRules.price(tooltip(var4, stack));
-                              if (!isDiamondSword(stack) || !hasLootingThree(var4, stack)
-                                 || currentPrice.isEmpty() || currentPrice.getAsLong() != cheapest.price()
-                                 || !AuctionSwordRules.affordable(currentPrice.getAsLong())) {
-                                 reopenAuction(var4, var2);
-                                 break;
-                              }
-                              purchaseSword = stack.method_7972();
-                              purchasePrice = cheapest.price();
-                              purchaseHandler = auctionMenu;
-                              purchaseConnection = var4.method_1562();
-                              purchasePlayer = var4.field_1724;
-                              clickTopSlot(var4, cheapest.slot(), class_1713.field_7790);
-                              state = SwordRecoveryRuntime.State.WAIT_PURCHASE;
-                              stateDeadlineMs = var2 + 8000L;
-                              nextActionAtMs = var2 + random(400, 700);
-                           }
-                        }
-                        break;
-                     case WAIT_PURCHASE:
-                        if (findLootingDiamondSword(var4, true) >= 0) {
-                           closeRecoveryScreen(var4);
-                           clearPurchase();
-                           state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
-                           nextActionAtMs = var2 + 250L;
-                        } else if (!purchaseContextValid(var4)) {
-                           reopenAuction(var4, var2);
-                        } else if (AuctionSwordRules.confirmationTitle(title(var4))) {
-                           if (confirmAuctionPurchase(var4)) {
-                              state = SwordRecoveryRuntime.State.VERIFY_PURCHASE;
-                              stateDeadlineMs = var2 + 10000L;
-                              nextActionAtMs = var2 + 500L;
-                           } else if (var2 >= stateDeadlineMs) {
-                              reopenAuction(var4, var2);
-                           } else {
-                              nextActionAtMs = var2 + 200L;
-                           }
-                        } else if (var2 >= stateDeadlineMs) {
-                           reopenAuction(var4, var2);
-                        } else {
-                           nextActionAtMs = var2 + 200L;
-                        }
-                        break;
-                     case VERIFY_PURCHASE:
-                        if (findLootingDiamondSword(var4, true) >= 0) {
-                           closeRecoveryScreen(var4);
-                           clearPurchase();
-                           state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
-                           nextActionAtMs = var2 + 250L;
-                        } else if (var2 >= stateDeadlineMs) {
-                           reopenAuction(var4, var2);
-                        } else {
-                           // Never click the confirmation twice while waiting for inventory updates.
-                           nextActionAtMs = var2 + 200L;
-                        }
-                        break;
-                     case MOVE_TO_HOTBAR:
-                        int var13 = findLootingDiamondSword(var4, true);
-                        if (var13 < 0) {
-                           state = SwordRecoveryRuntime.State.OPEN_AUCTION;
-                           nextActionAtMs = var2 + random(400, 800);
-                        } else {
-                           if (var13 < 9) {
-                              return finish(var4);
-                           }
-
-                           closeRecoveryScreen(var4);
-                           swapInventorySlotToHotbarZero(var4, var13);
-                           state = SwordRecoveryRuntime.State.VERIFY_HOTBAR;
-                           stateDeadlineMs = var2 + 3000L;
-                           nextActionAtMs = var2 + random(250, 500);
-                        }
-                        break;
-                     case VERIFY_HOTBAR:
-                        int var5 = findLootingDiamondSword(var4, true);
-                        if (var5 >= 0 && var5 < 9) {
-                           return finish(var4);
-                        }
-
-                        if (var2 >= stateDeadlineMs) {
-                           state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
-                           nextActionAtMs = var2 + random(250, 500);
-                        } else {
-                           nextActionAtMs = var2 + 150L;
-                        }
+                        purchaseSword = stack.method_7972();
+                        purchasePrice = cheapest.price();
+                        purchaseHandler = auctionMenu;
+                        purchaseConnection = var4.method_1562();
+                        purchasePlayer = var4.field_1724;
+                        clickTopSlot(var4, cheapest.slot(), class_1713.field_7790);
+                        state = SwordRecoveryRuntime.State.WAIT_PURCHASE;
+                        stateDeadlineMs = var2 + 8000L;
+                        nextActionAtMs = var2 + random(400, 700);
+                     }
                   }
-               } catch (Throwable var12) {
-                  System.err.println("[Donut Utility] Auction sword recovery: " + var12.getClass().getSimpleName());
-                  reopenAuction(var4, var2);
-               }
+                  break;
+               case WAIT_PURCHASE:
+                  if (findLootingDiamondSword(var4, true) >= 0) {
+                     closeRecoveryScreen(var4);
+                     clearPurchase();
+                     state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
+                     nextActionAtMs = var2 + 250L;
+                  } else if (!purchaseContextValid(var4)) {
+                     reopenAuction(var4, var2);
+                  } else if (AuctionSwordRules.confirmationTitle(title(var4))) {
+                     if (confirmAuctionPurchase(var4)) {
+                        state = SwordRecoveryRuntime.State.VERIFY_PURCHASE;
+                        stateDeadlineMs = var2 + 10000L;
+                        nextActionAtMs = var2 + 500L;
+                     } else if (var2 >= stateDeadlineMs) {
+                        reopenAuction(var4, var2);
+                     } else {
+                        nextActionAtMs = var2 + 200L;
+                     }
+                  } else if (var2 >= stateDeadlineMs) {
+                     reopenAuction(var4, var2);
+                  } else {
+                     nextActionAtMs = var2 + 200L;
+                  }
+                  break;
+               case VERIFY_PURCHASE:
+                  if (findLootingDiamondSword(var4, true) >= 0) {
+                     closeRecoveryScreen(var4);
+                     clearPurchase();
+                     state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
+                     nextActionAtMs = var2 + 250L;
+                  } else if (var2 >= stateDeadlineMs) {
+                     reopenAuction(var4, var2);
+                  } else {
+                     // Never click the confirmation twice while waiting for inventory updates.
+                     nextActionAtMs = var2 + 200L;
+                  }
+                  break;
+               case MOVE_TO_HOTBAR:
+                  int var13 = findLootingDiamondSword(var4, true);
+                  if (var13 < 0) {
+                     state = SwordRecoveryRuntime.State.OPEN_AUCTION;
+                     nextActionAtMs = var2 + random(400, 800);
+                  } else {
+                     if (var13 < 9) {
+                        return finish(var4);
+                     }
 
-               return false;
+                     closeRecoveryScreen(var4);
+                     swapInventorySlotToHotbarZero(var4, var13);
+                     state = SwordRecoveryRuntime.State.VERIFY_HOTBAR;
+                     stateDeadlineMs = var2 + 3000L;
+                     nextActionAtMs = var2 + random(250, 500);
+                  }
+                  break;
+               case VERIFY_HOTBAR:
+                  int var5 = findLootingDiamondSword(var4, true);
+                  if (var5 >= 0 && var5 < 9) {
+                     return finish(var4);
+                  }
+
+                  if (var2 >= stateDeadlineMs) {
+                     state = SwordRecoveryRuntime.State.MOVE_TO_HOTBAR;
+                     nextActionAtMs = var2 + random(250, 500);
+                  } else {
+                     nextActionAtMs = var2 + 150L;
+                  }
             }
-         } else {
-            return false;
+         } catch (Throwable var12) {
+            System.err.println("[Donut Utility] Auction sword recovery: " + var12.getClass().getSimpleName());
+            reopenAuction(var4, var2);
          }
+
+         return false;
       }
    }
 
    public static boolean isRecoveryBlockingAutoSell() {
-      return DeathRecoveryRuntime.isRecoveryPending() && !allowAutoSell;
+      return DeathRecoveryRuntime.isRecoveryPending() || recoveryActive && !allowAutoSell;
    }
 
    public static boolean allowAutoSellDuringRecovery() {
@@ -333,79 +289,21 @@ public final class SwordRecoveryRuntime {
 
    public static void forceReset() {
       clearPurchase();
+      recoveryActive = false;
+      missingSwordTimer.reset();
+      observedPlayer = null;
+      observedWorld = null;
       allowAutoSell = false;
-      homeStamp = Long.MIN_VALUE;
-      state = SwordRecoveryRuntime.State.WAIT_STABLE;
+      state = State.CHECK_LOCAL;
       stateDeadlineMs = 0L;
       nextActionAtMs = 0L;
-      armedHomeStamp = Long.MIN_VALUE;
-      homeGateArmed = false;
-      preHomeWorld = null;
-      preHomeZ = 0.0;
-      preHomeY = 0.0;
-      preHomeX = 0.0;
-      teleportSeen = false;
-      stableSinceMs = 0L;
-      lastGateZ = 0.0;
-      lastGateY = 0.0;
-      lastGateX = 0.0;
-   }
-
-   public static void armHomePositionGate(Object var0, Object var1, long var2) {
-      forceReset();
-      homeStamp = var2;
-      armedHomeStamp = var2;
-      double[] var4 = position(var0);
-      if (var4 != null) {
-         preHomeX = var4[0];
-         preHomeY = var4[1];
-         preHomeZ = var4[2];
-         lastGateX = var4[0];
-         lastGateY = var4[1];
-         lastGateZ = var4[2];
-         homeGateArmed = true;
-      }
-
-      preHomeWorld = var1;
-      state = SwordRecoveryRuntime.State.WAIT_STABLE;
-      long var5 = System.currentTimeMillis();
-      nextActionAtMs = var5 + 100L;
-      stateDeadlineMs = var5 + 10000L;
-      System.out.println("[Auto Ominous] Sword Recovery: armed /home position gate at " + fmt(preHomeX) + "," + fmt(preHomeY) + "," + fmt(preHomeZ));
-   }
-
-   private static void startNew(class_310 var0, long var1, long var3) {
-      forceReset();
-      homeStamp = var1;
-      armFromCurrent(var0, var1, var3);
-   }
-
-   private static void armFromCurrent(class_310 var0, long var1, long var3) {
-      armedHomeStamp = var1;
-      double[] var5 = position(var0.field_1724);
-      if (var5 != null) {
-         preHomeX = var5[0];
-         preHomeY = var5[1];
-         preHomeZ = var5[2];
-         lastGateX = var5[0];
-         lastGateY = var5[1];
-         lastGateZ = var5[2];
-         homeGateArmed = true;
-      }
-
-      preHomeWorld = reflectedField(var0, "field_1687");
-      teleportSeen = false;
-      stableSinceMs = 0L;
-      state = SwordRecoveryRuntime.State.WAIT_STABLE;
-      nextActionAtMs = var3 + 100L;
-      stateDeadlineMs = var3 + 10000L;
    }
 
    private static boolean finish(class_310 var0) {
       allowAutoSell = false;
       closeRecoveryScreen(var0);
       clearPurchase();
-      DeathRecoveryRuntime.completeAfterSwordRecovery();
+      forceReset();
       return true;
    }
 
@@ -693,55 +591,11 @@ public final class SwordRecoveryRuntime {
       }
    }
 
-   private static double[] position(Object var0) {
-      if (var0 == null) {
-         return null;
-      } else {
-         try {
-            double var1 = ((Number)var0.getClass().getMethod("method_23317").invoke(var0)).doubleValue();
-            double var3 = ((Number)var0.getClass().getMethod("method_23318").invoke(var0)).doubleValue();
-            double var5 = ((Number)var0.getClass().getMethod("method_23321").invoke(var0)).doubleValue();
-            return new double[]{var1, var3, var5};
-         } catch (Throwable var7) {
-            return null;
-         }
-      }
-   }
-
-   private static Object reflectedField(Object var0, String var1) {
-      if (var0 == null) {
-         return null;
-      } else {
-         for (Class var2 = var0.getClass(); var2 != null; var2 = var2.getSuperclass()) {
-            try {
-               Field var3 = var2.getDeclaredField(var1);
-               var3.setAccessible(true);
-               return var3.get(var0);
-            } catch (Throwable var4) {
-            }
-         }
-
-         return null;
-      }
-   }
-
-   private static double distanceSq(double var0, double var2, double var4, double var6, double var8, double var10) {
-      double var12 = var0 - var6;
-      double var14 = var2 - var8;
-      double var16 = var4 - var10;
-      return var12 * var12 + var14 * var14 + var16 * var16;
-   }
-
-   private static String fmt(double var0) {
-      return String.format(Locale.ROOT, "%.1f", var0);
-   }
-
    private static int random(int var0, int var1) {
       return ThreadLocalRandom.current().nextInt(var0, var1 + 1);
    }
 
    private static enum State {
-      WAIT_STABLE,
       CHECK_LOCAL,
       FREE_SPACE,
       OPEN_AUCTION,

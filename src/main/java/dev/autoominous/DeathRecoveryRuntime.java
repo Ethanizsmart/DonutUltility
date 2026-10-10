@@ -62,7 +62,7 @@ public final class DeathRecoveryRuntime {
                }
             } else if (recoveryPending) {
                if (homeCommandSent) {
-                  SwordRecoveryRuntime.onPostHomeTick(homeCommandSentAtMs);
+                  if (var7 - homeCommandSentAtMs >= POST_HOME_GUARD_MS) clearState();
                } else {
                   boolean var9 = var1 != null && invokeBoolean(var1, "method_5805", false);
                   if (var1 == null || var2 == null || !var9) {
@@ -74,10 +74,10 @@ public final class DeathRecoveryRuntime {
                      if (var7 - worldReadyAtMs >= Math.max(0, var10)) {
                         Object var11 = invokeNoArg(var0, "method_1562");
                         if (var11 != null) {
-                           String var12 = invokeStaticString("dev.autoominous.DeathRecoverySettings", "getCommandForSend", "");
+                           String var12 = invokeStaticString("dev.autoominous.DeathRecoverySettings", "getHome1CommandForSend", "/home 1");
                            String var13 = normalizeCommandForNetwork(var12);
                            if (var13.isBlank()) {
-                              System.err.println("[Auto Ominous] Death Recovery: no Home selected; recovery finished without /home command.");
+                              System.err.println("[Auto Ominous] Death Recovery: Home 1 command is empty; recovery finished without /home command.");
                               clearState();
                            } else {
                               try {
@@ -85,7 +85,6 @@ public final class DeathRecoveryRuntime {
                                  var14.invoke(var11, var13);
                                  homeCommandSent = true;
                                  homeCommandSentAtMs = var7;
-                                 SwordRecoveryRuntime.armHomePositionGate(var1, var2, var7);
                                  System.out.println("[Auto Ominous] Death Recovery: sent /" + var13 + "; holding /sell for 8000ms.");
                               } catch (Throwable var16) {
                                  System.err.println("[Auto Ominous] Death Recovery: failed to send home command: " + var16.getMessage());
@@ -154,7 +153,6 @@ public final class DeathRecoveryRuntime {
    }
 
    private static void clearState() {
-      SwordRecoveryRuntime.forceReset();
       recoveryPending = false;
       respawnRequested = false;
       deathDetectedAtMs = -1L;
@@ -245,16 +243,6 @@ public final class DeathRecoveryRuntime {
       } catch (Throwable var4) {
          return var2;
       }
-   }
-
-   public static void completeAfterSwordRecovery() {
-      clearState();
-   }
-
-   public static void retryHomeCommand() {
-      homeCommandSent = false;
-      homeCommandSentAtMs = 0L;
-      worldReadyAtMs = -1L;
    }
 
    public static void resetForVexDeathWait() {

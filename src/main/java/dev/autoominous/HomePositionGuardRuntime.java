@@ -88,7 +88,7 @@ public final class HomePositionGuardRuntime {
                }
             } else if (var0 >= guardCooldownUntilMs && !var5 && var0 >= tpaGraceUntilMs) {
                boolean var6 = isDeathRecoveryPending();
-               if (var6 && !isSwordRecoveryPastHomeGate()) {
+               if (var6) {
                   driftSinceMs = -1L;
                } else {
                   double[] var7 = position(var3);
@@ -104,7 +104,7 @@ public final class HomePositionGuardRuntime {
                         driftSinceMs = var0;
                         driftRequiredMs = random(400, 600);
                      } else if (var0 - driftSinceMs >= driftRequiredMs) {
-                        boolean var10 = var6 && isSwordRecoveryPastHomeGate();
+                        boolean var10 = SwordRecoveryRuntime.isRecoveryActive();
                         beginTransit(var2, var3, var4, HomePositionGuardRuntime.Transit.RETURN, var0, var10);
                         driftSinceMs = -1L;
                      }
@@ -130,11 +130,11 @@ public final class HomePositionGuardRuntime {
    }
 
    public static boolean isRecoveryPending() {
-      return isBlockingAutomation() || isDeathRecoveryPending();
+      return isBlockingAutomation() || isDeathRecoveryPending() || SwordRecoveryRuntime.isRecoveryActive();
    }
 
    public static boolean isAutoUseBlocked() {
-      return isBlockingAutomation() || isDeathRecoveryPending();
+      return isBlockingAutomation() || isDeathRecoveryPending() || SwordRecoveryRuntime.isRecoveryActive();
    }
 
    public static void cancelForVexDanger() {
@@ -410,7 +410,7 @@ public final class HomePositionGuardRuntime {
 
    private static void resumeSwordRecoveryAfterGuard(long var0) {
       try {
-         if (!isDeathRecoveryPending()) {
+         if (!SwordRecoveryRuntime.isRecoveryActive()) {
             return;
          }
 
@@ -432,11 +432,6 @@ public final class HomePositionGuardRuntime {
       } catch (Throwable var5) {
          System.err.println("[Auto Ominous] Home Guard: resume Sword Recovery failed: " + var5.getMessage());
       }
-   }
-
-   private static boolean isSwordRecoveryPastHomeGate() {
-      String var0 = swordStateName();
-      return !var0.isEmpty() && !"WAIT_STABLE".equals(var0);
    }
 
    private static String swordStateName() {
