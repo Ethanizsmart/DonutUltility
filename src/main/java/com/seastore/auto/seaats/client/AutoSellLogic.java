@@ -154,6 +154,14 @@ public class AutoSellLogic {
       }
    }
 
+   public static boolean isInventorySellComplete(class_310 client) {
+      return client.field_1724 != null
+         && currentState == State.IDLE
+         && client.field_1755 == null
+         && !hasActiveMenu(client)
+         && !hasInventoryItems(client);
+   }
+
    private static List<class_1657> getNearbyPlayers(class_310 var0, double var1) {
       return var0.field_1687
          .method_8390(class_1657.class, var0.field_1724.method_5829().method_1014(var1), var1x -> var1x != var0.field_1724 && !var1x.method_7325());
@@ -1039,14 +1047,7 @@ public class AutoSellLogic {
    }
 
    static boolean isSellableInventoryItem(class_1799 stack, int inventoryIndex) {
-      if (stack.method_7960()) {
-         return false;
-      }
-      if (stack.method_31574(class_1802.field_50140)) {
-         // Player inventory indices 0..8 are the hotbar; 9..35 are the main inventory.
-         return inventoryIndex >= 9 && inventoryIndex < 36;
-      }
-      return !isProtectedNeverSellItem(stack);
+      return InventorySellRules.canSell(stack.method_7960(), isProtectedHotbarItem(stack), inventoryIndex);
    }
 
    static boolean isSellableInventorySlot(class_310 client, class_1735 slot) {
@@ -1055,7 +1056,7 @@ public class AutoSellLogic {
          && isSellableInventoryItem(slot.method_7677(), slot.method_34266());
    }
 
-   static boolean isProtectedNeverSellItem(class_1799 var0) {
+   static boolean isProtectedHotbarItem(class_1799 var0) {
       return var0.method_31574(class_1802.field_8639)
          | var0.method_31574(class_1802.field_8450)
          | var0.method_31574(class_1802.field_8091)

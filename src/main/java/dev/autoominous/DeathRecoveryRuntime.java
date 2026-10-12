@@ -12,12 +12,23 @@ public final class DeathRecoveryRuntime {
    private static boolean sellGuiClosedForDeath;
    private static boolean homeCommandSent;
    private static long homeCommandSentAtMs = -1L;
+   private static boolean postDeathSellPending;
+   private static Object postDeathSellPlayer;
+   private static Object postDeathSellConnection;
 
    private DeathRecoveryRuntime() {
    }
 
    public static boolean isRecoveryPending() {
       return recoveryPending;
+   }
+
+   public static boolean isPostDeathSellPending() {
+      return postDeathSellPending;
+   }
+
+   public static boolean isBlockingAutoSell() {
+      return recoveryPending && !postDeathSellPending;
    }
 
    public static void onTick() {
@@ -35,6 +46,11 @@ public final class DeathRecoveryRuntime {
             boolean var5 = var1 != null && invokeBoolean(var1, "method_29504", false);
             boolean var6 = VexSafetyRuntime.filterDeathForRecovery(var4 || var5);
             long var7 = System.currentTimeMillis();
+            if (recoveryPending && (invokeNoArg(var0, "method_1562") == null
+               || postDeathSellPending && (var1 == null || var2 == null))) {
+               clearState();
+               return;
+            }
             if (var6) {
                if (!recoveryPending || homeCommandSent) {
                   beginRecovery(var7);
@@ -61,8 +77,17 @@ public final class DeathRecoveryRuntime {
                   }
                }
             } else if (recoveryPending) {
-               if (homeCommandSent) {
-                  if (var7 - homeCommandSentAtMs >= POST_HOME_GUARD_MS) clearState();
+               if (postDeathSellPending) {
+                  net.minecraft.class_310 client = (net.minecraft.class_310)var0;
+                  if (!SlashSellSettings.isEnabled()
+                     || var1 != postDeathSellPlayer
+                     || client.method_1562() != postDeathSellConnection
+                     || com.seastore.auto.seaats.client.AutoSellLogic.isInventorySellComplete(client)) {
+                     clearState();
+                     System.out.println("[Auto Ominous] Death Recovery: post-respawn sell finished; resuming automation.");
+                  }
+               } else if (homeCommandSent) {
+                  if (var7 - homeCommandSentAtMs >= POST_HOME_GUARD_MS) beginPostDeathSell(var0, var1);
                } else {
                   boolean var9 = var1 != null && invokeBoolean(var1, "method_5805", false);
                   if (var1 == null || var2 == null || !var9) {
@@ -77,8 +102,8 @@ public final class DeathRecoveryRuntime {
                            String var12 = invokeStaticString("dev.autoominous.DeathRecoverySettings", "getHome1CommandForSend", "/home 1");
                            String var13 = normalizeCommandForNetwork(var12);
                            if (var13.isBlank()) {
-                              System.err.println("[Auto Ominous] Death Recovery: Home 1 command is empty; recovery finished without /home command.");
-                              clearState();
+                              System.err.println("[Auto Ominous] Death Recovery: Home 1 command is empty; continuing to post-respawn sell without /home command.");
+                              beginPostDeathSell(var0, var1);
                            } else {
                               try {
                                  Method var14 = var11.getClass().getMethod("method_45730", String.class);
@@ -102,6 +127,9 @@ public final class DeathRecoveryRuntime {
    private static void beginRecovery(long var0) {
       HomePositionGuardRuntime.cancelForDeathRecovery();
       SwordRecoveryRuntime.forceReset();
+      postDeathSellPending = false;
+      postDeathSellPlayer = null;
+      postDeathSellConnection = null;
       recoveryPending = true;
       respawnRequested = false;
       deathDetectedAtMs = var0;
@@ -110,6 +138,20 @@ public final class DeathRecoveryRuntime {
       homeCommandSent = false;
       homeCommandSentAtMs = -1L;
       System.out.println("[Auto Ominous] Death Recovery: death detected; suspending /sell and waiting before respawn.");
+   }
+
+   private static void beginPostDeathSell(Object client, Object player) {
+      CompactSlashSellSettings.syncToOriginal();
+      if (!SlashSellSettings.isEnabled()) {
+         clearState();
+         return;
+      }
+      SlashSellRuntime.resetRuntime();
+      postDeathSellPending = true;
+      postDeathSellPlayer = player;
+      postDeathSellConnection = invokeNoArg(client, "method_1562");
+      ProtectedItemAutoUseRuntime.forceRelease();
+      System.out.println("[Auto Ominous] Death Recovery: selling inventory before resuming automation.");
    }
 
    private static String normalizeCommandForNetwork(String var0) {
@@ -153,6 +195,9 @@ public final class DeathRecoveryRuntime {
    }
 
    private static void clearState() {
+      postDeathSellPending = false;
+      postDeathSellPlayer = null;
+      postDeathSellConnection = null;
       recoveryPending = false;
       respawnRequested = false;
       deathDetectedAtMs = -1L;

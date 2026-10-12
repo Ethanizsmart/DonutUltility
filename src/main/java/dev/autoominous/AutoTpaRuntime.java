@@ -89,6 +89,7 @@ public final class AutoTpaRuntime {
    public static void onTick() {
       if (!MasterAutomation.isEnabled()) { clearAll(); return; }
       AutoTpaSettings.maybePersist();
+      if (DeathRecoveryRuntime.isPostDeathSellPending()) return;
       if (!VexSafetyRuntime.allowAutoTpa(AutoTpaSettings.isEnabled())) {
          clearAll();
       } else {

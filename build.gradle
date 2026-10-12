@@ -71,3 +71,9 @@ tasks.register('verifyAuctionSwordRules', JavaExec) {
     mainClass = 'dev.autoominous.AuctionSwordRulesChecks'
 }
 tasks.named('check') { dependsOn 'verifyAuctionSwordRules' }
+tasks.register('verifyInventorySellRules', JavaExec) {
+    dependsOn auctionChecksClasses
+    classpath = sourceSets.auctionChecks.runtimeClasspath
+    mainClass = 'com.seastore.auto.seaats.client.InventorySellRulesChecks'
+}
+tasks.named('check') { dependsOn 'verifyInventorySellRules' }

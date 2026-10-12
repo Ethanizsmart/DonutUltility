@@ -280,7 +280,7 @@ public final class SwordRecoveryRuntime {
    }
 
    public static boolean isRecoveryBlockingAutoSell() {
-      return DeathRecoveryRuntime.isRecoveryPending() || recoveryActive && !allowAutoSell;
+      return DeathRecoveryRuntime.isBlockingAutoSell() || recoveryActive && !allowAutoSell;
    }
 
    public static boolean allowAutoSellDuringRecovery() {
