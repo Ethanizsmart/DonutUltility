@@ -10,6 +10,7 @@ import dev.autoominous.DeathRecoverySettings;
 import dev.autoominous.DisconnectSettings;
 import dev.autoominous.HomePositionGuardRuntime;
 import dev.autoominous.MissingSwordWatchdogSettings;
+import dev.autoominous.MasterAutomation;
 import dev.autoominous.StatsRuntime;
 import dev.autoominous.StatsSettings;
 import fi.dy.masa.malilib.config.IConfigBase;
@@ -23,7 +24,7 @@ public final class AutoOminousGuiConfigs extends GuiConfigsBase {
    private static AutoOminousGuiConfigs.Tab currentTab = AutoOminousGuiConfigs.Tab.TPA;
 
    public AutoOminousGuiConfigs() {
-      super(10, 72, "autoominous", null, "autoominous.gui.title.configs", new Object[]{"1.1.4"});
+      super(10, 96, "autoominous", null, "autoominous.gui.title.configs", new Object[]{"1.1.8"});
    }
 
    public static void openSlashSellTab() {
@@ -33,44 +34,57 @@ public final class AutoOminousGuiConfigs extends GuiConfigsBase {
    public void initGui() {
       super.initGui();
       this.clearOptions();
-      this.addTabButton(10, 26, 60, "TPA", AutoOminousGuiConfigs.Tab.TPA);
-      this.addTabButton(72, 26, 100, "Disconnect", AutoOminousGuiConfigs.Tab.DISCONNECT);
-      this.addTabButton(174, 26, 120, "Death Recovery", AutoOminousGuiConfigs.Tab.DEATH_RECOVERY);
-      this.addTabButton(296, 26, 75, "/sell", AutoOminousGuiConfigs.Tab.SLASH_SELL);
-      this.addTabButton(373, 26, 80, "Stats", AutoOminousGuiConfigs.Tab.STATS);
-      this.addTabButton(455, 26, 90, "Bounty", AutoOminousGuiConfigs.Tab.BOUNTY);
+      String masterLabel = MasterAutomation.isEnabled() ? "§aMaster (F8): ON" : "§cMaster (F8): OFF";
+      this.addButton(new ButtonGeneric(10, 26, 200, 20, masterLabel, new String[]{
+         "Enable or pause all auto functions. Individual settings are preserved."
+      }), (button, mouseButton) -> {
+         MasterAutomation.toggle();
+         this.initGui();
+      });
+      this.addTabButton(10, 50, 60, "TPA", AutoOminousGuiConfigs.Tab.TPA);
+      this.addTabButton(72, 50, 100, "Disconnect", AutoOminousGuiConfigs.Tab.DISCONNECT);
+      this.addTabButton(174, 50, 120, "Death Recovery", AutoOminousGuiConfigs.Tab.DEATH_RECOVERY);
+      this.addTabButton(296, 50, 75, "/sell", AutoOminousGuiConfigs.Tab.SLASH_SELL);
+      this.addTabButton(373, 50, 80, "Stats", AutoOminousGuiConfigs.Tab.STATS);
+      this.addTabButton(455, 50, 90, "Bounty", AutoOminousGuiConfigs.Tab.BOUNTY);
       if (currentTab == AutoOminousGuiConfigs.Tab.DISCONNECT) {
-         this.addButton(new ButtonGeneric(10, 48, 220, 20, "Clear Disconnect Log", new String[0]), (var1x, var2x) -> {
+         this.addButton(new ButtonGeneric(10, 72, 220, 20, "Clear Disconnect Log", new String[0]), (var1x, var2x) -> {
             DisconnectSettings.clearDetectionLog();
             this.reCreateListWidget();
             this.initGui();
          });
       } else if (currentTab == AutoOminousGuiConfigs.Tab.DEATH_RECOVERY) {
+         this.addButton(new ButtonGeneric(216, 26, 329, 20, "Save Home 1 Here (XYZ + Look)", new String[]{
+            "Stand at Home 1 and aim in the desired direction, then save. This button sends no command."
+         }), (button, mouseButton) -> {
+            HomePositionGuardRuntime.saveCurrentPose();
+            this.initGui();
+         });
          String var1 = MissingSwordWatchdogSettings.isEnabled() ? "§aAuto Buy Sword (5s): ON" : "§cAuto Buy Sword (5s): OFF";
-         this.addButton(new ButtonGeneric(10, 48, 290, 20, var1, new String[0]), (var1x, var2x) -> {
+         this.addButton(new ButtonGeneric(10, 72, 290, 20, var1, new String[0]), (var1x, var2x) -> {
             MissingSwordWatchdogSettings.toggleFromGui();
             this.reCreateListWidget();
             this.initGui();
          });
          String var2 = DeathRecoverySettings.isHomeSelected(1) ? "§2✓" : "";
          String var3 = DeathRecoverySettings.isHomeSelected(2) ? "§2✓" : "";
-         this.addButton(new ButtonGeneric(590, 159, 28, 20, var2, new String[0]), (var1x, var2x) -> {
+         this.addButton(new ButtonGeneric(590, 183, 28, 20, var2, new String[0]), (var1x, var2x) -> {
             DeathRecoverySettings.selectHome(1);
             this.reCreateListWidget();
             this.initGui();
          });
-         this.addButton(new ButtonGeneric(590, 181, 28, 20, var3, new String[0]), (var1x, var2x) -> {
+         this.addButton(new ButtonGeneric(590, 205, 28, 20, var3, new String[0]), (var1x, var2x) -> {
             DeathRecoverySettings.selectHome(2);
             this.reCreateListWidget();
             this.initGui();
          });
       } else if (currentTab == AutoOminousGuiConfigs.Tab.STATS) {
-         this.addButton(new ButtonGeneric(10, 48, 120, 20, "Reset Stats", new String[0]), (var1x, var2x) -> {
+         this.addButton(new ButtonGeneric(10, 72, 120, 20, "Reset Stats", new String[0]), (var1x, var2x) -> {
             StatsRuntime.reset();
             this.initGui();
          });
       } else if (currentTab == AutoOminousGuiConfigs.Tab.BOUNTY) {
-         this.addButton(new ButtonGeneric(10, 48, 535, 20, BountyRuntime.getStatusLine(), new String[0]), (var1x, var2x) -> this.initGui());
+         this.addButton(new ButtonGeneric(10, 72, 535, 20, BountyRuntime.getStatusLine(), new String[0]), (var1x, var2x) -> this.initGui());
       }
 
       HomePositionGuardRuntime.injectGuiControls(this);

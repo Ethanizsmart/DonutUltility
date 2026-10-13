@@ -36,6 +36,10 @@ public final class SwordRecoveryRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {
+         forceReset();
+         return;
+      }
       class_310 client = class_310.method_1551();
       DeathRecoverySettings.maybePersist();
       if (!DeathRecoverySettings.isSwordRecoveryEnabled()) {
@@ -295,6 +299,12 @@ public final class SwordRecoveryRuntime {
 
    public static boolean allowAutoSellDuringRecovery() {
       return allowAutoSell;
+   }
+
+   public static void stopForMaster() {
+      class_310 client = class_310.method_1551();
+      if (recoveryActive && client != null && client.field_1724 != null) closeRecoveryScreen(client);
+      forceReset();
    }
 
    public static void forceReset() {

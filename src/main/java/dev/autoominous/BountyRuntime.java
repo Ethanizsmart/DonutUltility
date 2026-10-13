@@ -27,6 +27,7 @@ public final class BountyRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) return;
       if (!G232SafeRuntime.isSwordRecoverySuspended()) {
          BountySettings.maybePersist();
          boolean var0 = BountySettings.isEnabled();
@@ -128,7 +129,7 @@ public final class BountyRuntime {
    }
 
    public static void onGameMessageObject(Object var0) {
-      if (BountySettings.isEnabled() && var0 != null) {
+      if (MasterAutomation.isEnabled() && BountySettings.isEnabled() && var0 != null) {
          try {
             onGameMessage(bridge().textToString(var0));
          } catch (Throwable var2) {
@@ -260,6 +261,14 @@ public final class BountyRuntime {
       } catch (Throwable var5) {
          scheduleRetry("Could not start bounty", var0);
       }
+   }
+
+   public static void resetForMaster() {
+      disable();
+      enabledKnown = false;
+      lastEnabled = false;
+      currentBalance = -1L;
+      currentBountyAmount = "-";
    }
 
    private static void disable() {

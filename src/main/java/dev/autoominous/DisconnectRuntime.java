@@ -32,6 +32,7 @@ public final class DisconnectRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) return;
       AutoReconnectRuntime.onTick();
       CoreV2RuntimeBridge.onClientTick();
       BountyRecoveryBridge.onTick();
@@ -91,6 +92,12 @@ public final class DisconnectRuntime {
             }
          }
       }
+   }
+
+   public static void resetForMaster() {
+      disconnectTriggered = false;
+      sawDisconnectedState = false;
+      scanTickCounter = 0;
    }
 
    public static void clearProtectionTrigger() {

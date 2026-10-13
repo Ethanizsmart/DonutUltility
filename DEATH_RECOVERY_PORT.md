@@ -1,5 +1,8 @@
 # CoreV2 1.1.8 — Death Recovery và Auto Buy Sword từ release 1.1.7
 
+Tài liệu này ghi nhận giai đoạn tích hợp trước khi thêm Master Automation.
+Source hiện tại có thêm F8; xem [MASTER_F8.md](MASTER_F8.md) cho thay đổi và kiểm tra mới.
+
 Bản này tiếp tục dùng source CoreV2 đã khôi phục; chỉ tích hợp luồng hồi sinh
 và mua kiếm được yêu cầu. **Giữ luồng `/sell` của CoreV2 hiện tại.**
 Không dùng `AutoSellLogic` hay quy tắc bán inventory của release làm bản thay thế.

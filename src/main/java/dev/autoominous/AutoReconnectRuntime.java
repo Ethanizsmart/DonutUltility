@@ -11,6 +11,10 @@ public final class AutoReconnectRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {
+         resetForMaster();
+         return;
+      }
       AutoReconnectSettings.maybePersist();
       if (!SafetyReconnectBridge.allowAutoReconnect(AutoReconnectSettings.isEnabled())) {
          nextAttemptAtMs = 0L;
@@ -74,6 +78,11 @@ public final class AutoReconnectRuntime {
             System.err.println("[DonutUtility/AutoReconnect] Reconnect attempt failed: " + var11.getMessage());
          }
       }
+   }
+
+   public static void resetForMaster() {
+      nextAttemptAtMs = 0L;
+      wasTriggered = false;
    }
 
    private static long delayMs() {

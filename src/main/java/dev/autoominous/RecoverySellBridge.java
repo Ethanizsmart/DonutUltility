@@ -20,6 +20,7 @@ public final class RecoverySellBridge {
    }
 
    private static void tickCurrentSeller() {
+      if (!MasterAutomation.isEnabled()) return;
       class_310 client = class_310.method_1551();
       if (client == null || client.field_1724 == null || client.field_1687 == null) return;
       boolean previousSeaEnabled = Config.isAutoSellEnabled;

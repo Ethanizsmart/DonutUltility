@@ -6,9 +6,19 @@ Phiên bản release hiện tại trong `fabric.mod.json` là **1.1.8**; tên JA
 
 Bản hiện tại đã tích hợp **Death Recovery và Auto Buy Sword 5 giây** từ release
 1.1.7 theo yêu cầu, **giữ luồng `/sell` CoreV2 hiện tại**. Chi tiết thay đổi,
-89 kiểm tra đã qua và giới hạn thử nghiệm: [DEATH_RECOVERY_PORT.md](DEATH_RECOVERY_PORT.md).
+kiểm tra đã qua và giới hạn thử nghiệm: [DEATH_RECOVERY_PORT.md](DEATH_RECOVERY_PORT.md).
 
 Tải bản cài đặt và mã nguồn đầy đủ ở [release v1.1.8](https://github.com/Ethanizsmart/DonutUltility/releases/tag/v1.1.8).
+
+Release 1.1.8 đã cập nhật thêm **Master Automation (F8)**:
+bấm **F8** hoặc nút **Master (F8)** ở đầu cửa sổ cấu hình để bật/tắt toàn bộ auto.
+Master bắt đầu OFF mỗi lần mở game; các lựa chọn riêng của từng chức năng được giữ.
+Xem [MASTER_F8.md](MASTER_F8.md) để biết phạm vi, file build và kiểm chứng.
+
+Source hiện tại cũng có **Home 1 Position + Look Guard**: lưu XYZ và hướng nhìn
+yaw/pitch tại Home 1 rồi gọi lệnh Home 1 khi lệch khỏi giá trị đã lưu.
+Xem [HOME_POSITION_LOOK_GUARD.md](HOME_POSITION_LOOK_GUARD.md) để cài bản mới và thiết lập.
+Release GitHub 1.1.8 hiện có cả Master F8 và Home Look Guard.
 
 ## Mở để chỉnh sửa
 

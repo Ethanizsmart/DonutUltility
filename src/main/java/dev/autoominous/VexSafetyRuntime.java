@@ -22,6 +22,20 @@ public final class VexSafetyRuntime {
    private VexSafetyRuntime() {
    }
 
+   public static void resetForMaster() {
+      lastVexSeenAtMs = -1L;
+      vexPresent = false;
+      vexCount = 0;
+      deathWaitActive = false;
+      deathWaitSatisfied = false;
+      zeroSinceMs = -1L;
+      consecutiveSuccessfulZeroScans = 0;
+      lastLoggedPresent = false;
+      resetIssuedForCurrentDeath = false;
+      lastScanSuccessful = false;
+      scanFailureLogged = false;
+   }
+
    public static void onTick() {
       scanVexNow();
    }

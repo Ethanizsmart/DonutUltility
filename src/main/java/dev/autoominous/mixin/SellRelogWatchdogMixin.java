@@ -16,6 +16,11 @@ public abstract class SellRelogWatchdogMixin {
 
    @Inject(method = "method_1574", at = @At("TAIL"), require = 1)
    private void donututility$sellRelogWatchdog(CallbackInfo var1) {
+      if (!dev.autoominous.MasterAutomation.isEnabled()) {
+         donututility$waitingForReconnect = false;
+         donututility$lastRelogAtMs = 0L;
+         return;
+      }
       try {
          Class var2 = Class.forName("net.minecraft.class_310");
          Method var3 = var2.getMethod("method_1551");

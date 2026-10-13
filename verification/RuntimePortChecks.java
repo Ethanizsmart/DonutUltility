@@ -13,6 +13,7 @@ public class RuntimePortChecks {
       Files.createDirectories(bin);
       Map<String, String> files = new LinkedHashMap<>();
       files.put("dev.autoominous.Clock", "public class Clock { public static long now; }");
+      files.put("dev.autoominous.MasterAutomation", "public class MasterAutomation { public static boolean enabled=true; public static boolean isEnabled(){return enabled;} }");
       files.put("dev.autoominous.DeathRecoverySettings", """
          public class DeathRecoverySettings {
             public static boolean enabled=true;
@@ -88,7 +89,7 @@ public class RuntimePortChecks {
             static void check(boolean value,String message){checks++;if(!value)throw new AssertionError(message);}
             static class_310 client(){return class_310.instance;}
             static void at(long time){Clock.now=time;DeathRecoveryRuntime.onTick();}
-            static void setup(){DeathRecoveryRuntime.resetForVexDeathWait();class_310.instance=new class_310();DeathRecoverySettings.enabled=true;SlashSellSettings.enabled=false;Config.isAutoSellEnabled=false;AutoSellLogic.items=true;AutoSellLogic.throwOnTick=false;AutoSellLogic.currentState="IDLE";}
+            static void setup(){MasterAutomation.enabled=true;DeathRecoveryRuntime.resetForVexDeathWait();class_310.instance=new class_310();DeathRecoverySettings.enabled=true;SlashSellSettings.enabled=false;Config.isAutoSellEnabled=false;AutoSellLogic.items=true;AutoSellLogic.throwOnTick=false;AutoSellLogic.currentState="IDLE";}
             static void reachSale(long base){client().field_1724.dead=true;at(base);at(base+100);at(base+101);at(base+301);at(base+8301);}
             public static void main(String[] args){
                setup();at(1000);check(!DeathRecoveryRuntime.isRecoveryPending(),"alive idle");
@@ -108,6 +109,8 @@ public class RuntimePortChecks {
                setup();reachSale(60000);client().field_1724=new class_746();at(68302);check(!DeathRecoveryRuntime.isRecoveryPending(),"new player cancels old sale");
                setup();reachSale(70000);DeathRecoverySettings.enabled=false;at(78302);check(!DeathRecoveryRuntime.isRecoveryPending(),"toggle OFF resets");
                setup();reachSale(80000);DeathRecoveryRuntime.resetForVexDeathWait();check(!DeathRecoveryRuntime.isRecoveryPending(),"Vex reset");check(!DeathRecoveryRuntime.isPostDeathSellPending(),"Vex sale reset");
+               setup();MasterAutomation.enabled=false;client().field_1724.dead=true;at(90000);at(91000);check(client().field_1724.respawns==0,"Master OFF never respawns");check(client().connection.calls==0,"Master OFF never sends home");check(!DeathRecoveryRuntime.isRecoveryPending(),"Master OFF never arms recovery");
+               setup();reachSale(100000);MasterAutomation.enabled=false;AutoSellLogic.throwOnTick=true;RecoverySellBridge.onTick();check(!Config.isAutoSellEnabled,"Master OFF bypasses priority seller");at(108302);check(!DeathRecoveryRuntime.isPostDeathSellPending(),"Master OFF clears pending recovery sell");
                System.out.println("PASS "+checks+" death/recovery bridge checks with inert fixtures; no Minecraft/network/config.");
             }
          }

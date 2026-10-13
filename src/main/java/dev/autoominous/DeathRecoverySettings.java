@@ -2,6 +2,7 @@ package dev.autoominous;
 
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
+import fi.dy.masa.malilib.config.options.ConfigDouble;
 import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigString;
 import java.io.BufferedReader;
@@ -17,7 +18,10 @@ public final class DeathRecoverySettings {
    public static final ConfigBoolean AUTO_DEATH_RECOVERY = new ConfigBoolean("Auto Death Recovery", false);
    public static final ConfigBoolean RECOVER_SWORD_AFTER_DEATH = new ConfigBoolean("Auto Buy Sword", true,
       "Buy a Diamond Sword with Looting III after 5 seconds of continuous absence. Independent of Auto Death Recovery.");
-   public static final ConfigBoolean HOME_1_POSITION_GUARD = new ConfigBoolean("Home 1 Position Guard", false);
+   public static final ConfigBoolean HOME_1_POSITION_GUARD = new ConfigBoolean("Home 1 Position + Look Guard", false,
+      "Return to Home 1 when position or yaw/pitch differs from the saved Home 1 pose. Requires a captured anchor and Master ON.");
+   public static final ConfigDouble HOME_POSITION_TOLERANCE = new ConfigDouble("Home Position Tolerance (blocks)", 0.3, 0.01, 5.0);
+   public static final ConfigDouble HOME_LOOK_TOLERANCE = new ConfigDouble("Home Look Tolerance (degrees)", 2.0, 0.1, 45.0);
    public static final ConfigInteger RESPAWN_DELAY_MS = new ConfigInteger(
       "Respawn Delay (ms)", 2000, 0, 30000, "Wait after the death screen appears before automatically respawning."
    );
@@ -28,7 +32,8 @@ public final class DeathRecoverySettings {
    public static final ConfigString HOME_COMMAND_2 = new ConfigString("Home 2 CMD", "/home 2");
    private static int selectedHome = 1;
    public static final List<IConfigBase> ALL_OPTIONS = List.of(
-      AUTO_DEATH_RECOVERY, RECOVER_SWORD_AFTER_DEATH, HOME_1_POSITION_GUARD, RESPAWN_DELAY_MS, HOME_DELAY_MS, HOME_COMMAND_1, HOME_COMMAND_2
+      AUTO_DEATH_RECOVERY, RECOVER_SWORD_AFTER_DEATH, HOME_1_POSITION_GUARD, RESPAWN_DELAY_MS, HOME_DELAY_MS, HOME_COMMAND_1, HOME_COMMAND_2,
+      HOME_POSITION_TOLERANCE, HOME_LOOK_TOLERANCE
    );
    private static boolean lastEnabled;
    private static boolean lastRecoverSword;
@@ -38,6 +43,8 @@ public final class DeathRecoverySettings {
    private static int lastSelectedHome;
    private static String lastHomeCommand1;
    private static String lastHomeCommand2;
+   private static double lastPositionTolerance;
+   private static double lastLookTolerance;
    private static boolean initialized;
 
    private DeathRecoverySettings() {
@@ -53,6 +60,14 @@ public final class DeathRecoverySettings {
 
    public static boolean isHomeGuardEnabled() {
       return HOME_1_POSITION_GUARD.getBooleanValue();
+   }
+
+   public static double getHomeGuardPositionTolerance() {
+      return clampDouble(HOME_POSITION_TOLERANCE.getDoubleValue(), 0.01, 5.0, 0.3);
+   }
+
+   public static double getHomeGuardLookTolerance() {
+      return clampDouble(HOME_LOOK_TOLERANCE.getDoubleValue(), 0.1, 45.0, 2.0);
    }
 
    public static int getRespawnDelayMs() {
@@ -105,7 +120,9 @@ public final class DeathRecoverySettings {
             || var4 != lastHomeDelayMs
             || selectedHome != lastSelectedHome
             || !var5.equals(lastHomeCommand1)
-            || !var6.equals(lastHomeCommand2)) {
+            || !var6.equals(lastHomeCommand2)
+            || getHomeGuardPositionTolerance() != lastPositionTolerance
+            || getHomeGuardLookTolerance() != lastLookTolerance) {
             saveNow();
          }
       }
@@ -124,6 +141,8 @@ public final class DeathRecoverySettings {
          var1.setProperty("selectedHome", Integer.toString(getSelectedHome()));
          var1.setProperty("homeCommand1", safeHomeCommand1());
          var1.setProperty("homeCommand2", safeHomeCommand2());
+         var1.setProperty("homePositionTolerance", Double.toString(getHomeGuardPositionTolerance()));
+         var1.setProperty("homeLookTolerance", Double.toString(getHomeGuardLookTolerance()));
 
          try (BufferedWriter var2 = Files.newBufferedWriter(var0, StandardCharsets.UTF_8)) {
             var1.store(var2, "Auto Ominous - Death Recovery");
@@ -151,6 +170,8 @@ public final class DeathRecoverySettings {
          AUTO_DEATH_RECOVERY.setBooleanValue(Boolean.parseBoolean(var1.getProperty("enabled", "false")));
          RECOVER_SWORD_AFTER_DEATH.setBooleanValue(Boolean.parseBoolean(var1.getProperty("recoverSwordAfterDeath", "true")));
          HOME_1_POSITION_GUARD.setBooleanValue(Boolean.parseBoolean(var1.getProperty("home1PositionGuard", "false")));
+         HOME_POSITION_TOLERANCE.setDoubleValue(parseDouble(var1.getProperty("homePositionTolerance"), 0.3, 0.01, 5.0));
+         HOME_LOOK_TOLERANCE.setDoubleValue(parseDouble(var1.getProperty("homeLookTolerance"), 2.0, 0.1, 45.0));
          RESPAWN_DELAY_MS.setIntegerValue(parseInt(var1.getProperty("respawnDelayMs"), 2000));
          HOME_DELAY_MS.setIntegerValue(parseInt(var1.getProperty("homeDelayMs"), 1500));
          String var9 = var1.getProperty("homeCommand", "/home 1");
@@ -178,6 +199,15 @@ public final class DeathRecoverySettings {
       }
    }
 
+   private static double clampDouble(double value, double min, double max, double fallback) {
+      return Double.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+   }
+
+   private static double parseDouble(String value, double fallback, double min, double max) {
+      try { return clampDouble(Double.parseDouble(value), min, max, fallback); }
+      catch (RuntimeException error) { return fallback; }
+   }
+
    private static Path configPath() {
       return Paths.get(System.getProperty("user.dir", "."), "config", "autoominous-death-recovery.properties");
    }
@@ -201,6 +231,8 @@ public final class DeathRecoverySettings {
       lastSelectedHome = getSelectedHome();
       lastHomeCommand1 = safeHomeCommand1();
       lastHomeCommand2 = safeHomeCommand2();
+      lastPositionTolerance = getHomeGuardPositionTolerance();
+      lastLookTolerance = getHomeGuardLookTolerance();
    }
 
    static {

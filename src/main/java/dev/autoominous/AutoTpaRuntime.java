@@ -59,6 +59,7 @@ public final class AutoTpaRuntime {
    }
 
    public static void onGameMessage(String var0) {
+      if (!MasterAutomation.isEnabled()) return;
       if (AutoTpaSettings.isEnabled() && var0 != null && !var0.isBlank()) {
          Matcher var1 = TELEPORT_HERE.matcher(var0.replace('\r', '\n'));
 
@@ -84,6 +85,10 @@ public final class AutoTpaRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {
+         resetForMaster();
+         return;
+      }
       if (awaitingConfirm || !FarmCycleRuntime.isCycleBlockingAuxiliaryActions()) {
          AutoTpaSettings.maybePersist();
          if (!VexSafetyRuntime.allowAutoTpa(AutoTpaSettings.isEnabled())) {
@@ -165,6 +170,12 @@ public final class AutoTpaRuntime {
       }
 
       return false;
+   }
+
+   public static void resetForMaster() {
+      clearAll();
+      lastRequestUser = null;
+      lastRequestMillis = 0L;
    }
 
    private static void clearAll() {

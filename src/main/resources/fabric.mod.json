@@ -3,7 +3,7 @@
   "id": "donututility",
   "version": "1.1.8",
   "name": "Donut Utility",
-  "description": "CoreV2 client utility with the existing /sell flow and HUD, Death Recovery with a priority sell after Home 1, and independent Auto Buy Sword after 5 seconds without a Looting III Diamond Sword. Includes safety-aware Auto Reconnect, Auto Bounty, Auto TPA, and /sell GUI failover through the existing safe Auto Reconnect pipeline.",
+  "description": "CoreV2 client utility with a session Master toggle (F8), Home 1 position and yaw/pitch guard, the existing /sell flow and HUD, Death Recovery with a priority sell after Home 1, and independent Auto Buy Sword after 5 seconds without a Looting III Diamond Sword. Includes safety-aware Auto Reconnect, Auto Bounty, Auto TPA, and /sell GUI failover through the existing safe Auto Reconnect pipeline.",
   "authors": [
     "OpenAI for user-requested project"
   ],

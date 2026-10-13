@@ -14,8 +14,7 @@ import java.util.Locale;
 import java.util.Properties;
 
 public final class HomePositionGuardRuntime {
-   private static final double HORIZONTAL_TOLERANCE = 0.3;
-   private static final double Y_TOLERANCE = 1.0;
+   private static final double SETTLE_LOOK_TOLERANCE = 0.25;
    private static final long SETTLE_MS = 650L;
    private static final long TRANSIT_TIMEOUT_MS = 10000L;
    private static final int MAX_HOME_SENDS = 2;
@@ -26,6 +25,10 @@ public final class HomePositionGuardRuntime {
    private static double anchorY;
    private static double anchorZ;
    private static String anchorWorld = "";
+   private static boolean anchorLookSet;
+   private static double anchorYaw;
+   private static double anchorPitch;
+   private static String anchorCaptureMode = "teleport";
    private static boolean captureRequested;
    private static HomePositionGuardRuntime.Transit transit = HomePositionGuardRuntime.Transit.NONE;
    private static long transitStartedAtMs;
@@ -40,6 +43,8 @@ public final class HomePositionGuardRuntime {
    private static double lastX;
    private static double lastY;
    private static double lastZ;
+   private static double lastYaw;
+   private static double lastPitch;
    private static long driftSinceMs = -1L;
    private static long driftRequiredMs = 500L;
    private static long guardCooldownUntilMs;
@@ -54,7 +59,16 @@ public final class HomePositionGuardRuntime {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) return;
       ensureLoaded();
+      if (transit == Transit.RETURN && !isConfiguredHomeGuardEnabled()) {
+         cancelTransitForHigherPriority("Home Guard disabled", false);
+         return;
+      }
+      if (transit != Transit.NONE && (isDeathRecoveryPending() || isVexDangerArmed())) {
+         cancelTransitForHigherPriority("Death Recovery/Vex", false);
+         return;
+      }
       enforceSwordRecoveryBounds();
       invokeStaticVoid("dev.autoominous.DeathRecoverySettings", "maybePersist");
       long var0 = System.currentTimeMillis();
@@ -63,6 +77,7 @@ public final class HomePositionGuardRuntime {
          Object var3 = getField(var2, "field_1724");
          Object var4 = getField(var2, "field_1687");
          if (var3 != null && var4 != null) {
+            if (!invokeBoolean(var3, "method_5805", false)) return;
             boolean var5 = isAutoTpaBusy();
             if (var5) {
                sawTpaBusy = true;
@@ -74,6 +89,8 @@ public final class HomePositionGuardRuntime {
 
             if (transit != HomePositionGuardRuntime.Transit.NONE) {
                tickTransit(var2, var3, var4, var0);
+            } else if (isDeathRecoveryPending() || isVexDangerArmed() || isOtherTransactionBusy(var2)) {
+               driftSinceMs = -1L;
             } else if (captureRequested) {
                if (!isDeathRecoveryPending() && !var5 && var0 >= tpaGraceUntilMs && !isVexDangerArmed()) {
                   captureRequested = false;
@@ -92,7 +109,7 @@ public final class HomePositionGuardRuntime {
                   double[] var7 = position(var3);
                   if (var7 != null) {
                      String var8 = worldKey(var4);
-                     boolean var9 = isOutsideAnchor(var7[0], var7[1], var7[2], var8);
+                     boolean var9 = isOutsideAnchor(var7[0], var7[1], var7[2], var8) || isOutsideLook(var3);
                      if (!var9) {
                         driftSinceMs = -1L;
                         returnFailureLatched = false;
@@ -116,11 +133,35 @@ public final class HomePositionGuardRuntime {
    }
 
    public static void requestCapture() {
+      if (!MasterAutomation.isEnabled()) {
+         actionbar("Enable Master (F8) before capturing Home 1.");
+         return;
+      }
       ensureLoaded();
       captureRequested = true;
       returnFailureLatched = false;
       actionbar("Home 1 capture queued: waiting for a safe moment...");
       System.out.println("[Auto Ominous] Home Guard: Home 1 capture queued.");
+   }
+
+   /** Explicit calibration while the user is already standing and looking at Home 1. */
+   public static void saveCurrentPose() {
+      ensureLoaded();
+      Object client = getMinecraftClient();
+      Object player = getField(client, "field_1724");
+      Object world = getField(client, "field_1687");
+      double[] pos = position(player), angles = look(player);
+      if (world == null || pos == null || angles == null || !invokeBoolean(player, "method_5805", false)
+         || transit != Transit.NONE || isDeathRecoveryPending()) {
+         actionbar("Home 1 pose not saved: wait until alive and recovery is idle.");
+         return;
+      }
+      saveAnchor(pos[0],pos[1],pos[2],worldKey(world),angles[0],angles[1],"manual");
+      captureRequested = false;
+      driftSinceMs = -1L;
+      returnFailureLatched = false;
+      guardCooldownUntilMs = System.currentTimeMillis() + 1000L;
+      actionbar("Home 1 saved here: XYZ + yaw/pitch. Enable Home Guard to monitor.");
    }
 
    public static boolean isBlockingAutomation() {
@@ -133,6 +174,19 @@ public final class HomePositionGuardRuntime {
 
    public static boolean isAutoUseBlocked() {
       return isBlockingAutomation() || isDeathRecoveryPending();
+   }
+
+   public static void resetForMaster() {
+      cancelTransitForHigherPriority("Master toggle", false);
+      captureRequested = false;
+      driftSinceMs = -1L;
+      guardCooldownUntilMs = 0L;
+      returnFailureLatched = false;
+      sawTpaBusy = false;
+      tpaGraceUntilMs = 0L;
+      pauseSwordRecovery = false;
+      pausedSwordState = "";
+      preWorld = null;
    }
 
    public static void cancelForVexDanger() {
@@ -214,7 +268,7 @@ public final class HomePositionGuardRuntime {
 
             Class var3 = Class.forName("fi.dy.masa.malilib.gui.button.ButtonGeneric");
             Constructor var4 = var3.getConstructor(int.class, int.class, int.class, int.class, String.class, String[].class);
-            Object var5 = var4.newInstance(10, 48, 535, 20, getCaptureButtonLabel(), new String[0]);
+            Object var5 = var4.newInstance(306, 72, 239, 20, getCaptureButtonLabel(), new String[0]);
             Class var6 = Class.forName("fi.dy.masa.malilib.gui.button.IButtonActionListener");
             Object var7 = Proxy.newProxyInstance(var6.getClassLoader(), new Class[]{var6}, (var1x, var2x, var3x) -> {
                String var4x = var2x.getName();
@@ -249,9 +303,8 @@ public final class HomePositionGuardRuntime {
 
    public static String getCaptureButtonLabel() {
       ensureLoaded();
-      return !anchorSet
-         ? "Capture Home 1  |  Saved: NOT SET  |  tolerance: 0.30 block"
-         : String.format(Locale.ROOT, "Capture Home 1  |  Saved: %.2f, %.2f, %.2f  |  tol 0.30", anchorX, anchorY, anchorZ);
+      return !anchorSet ? "Capture Home 1: NOT SET"
+         : anchorLookSet ? "Capture Home 1: XYZ + look saved" : "Capture Home 1: recapture for look";
    }
 
    private static void beginTransit(Object var0, Object var1, Object var2, HomePositionGuardRuntime.Transit var3, long var4, boolean var6) {
@@ -274,30 +327,43 @@ public final class HomePositionGuardRuntime {
          homeSendCount = 1;
          System.out
             .println(
-               "[Auto Ominous] Home Guard: sent /home 1 for " + (var3 == HomePositionGuardRuntime.Transit.CAPTURE ? "capture" : "position correction") + "."
+               "[Auto Ominous] Home Guard: sent /home 1 for " + (var3 == HomePositionGuardRuntime.Transit.CAPTURE ? "capture" : "position/look correction") + "."
             );
       }
    }
 
    private static void tickTransit(Object var0, Object var1, Object var2, long var3) {
       double[] var5 = position(var1);
+      double[] angles = look(var1);
+      if (var5 == null || angles == null) {
+         if (var3 - transitStartedAtMs >= TRANSIT_TIMEOUT_MS) {
+            returnFailureLatched = transit == Transit.RETURN;
+            abortTransit(var3, returnFailureLatched);
+         }
+         return;
+      }
       if (var5 != null) {
          String var6 = worldKey(var2);
          if (transit == HomePositionGuardRuntime.Transit.RETURN) {
-            if (isInsideAnchor(var5[0], var5[1], var5[2], var6)) {
+            if (isInsideAnchor(var5[0], var5[1], var5[2], var6) && !isOutsideLook(var1)) {
                if (stableSinceMs == 0L) {
                   stableSinceMs = var3;
                   lastX = var5[0];
                   lastY = var5[1];
                   lastZ = var5[2];
+                  lastYaw = angles[0];
+                  lastPitch = angles[1];
                } else {
-                  if (distanceSq(var5[0], var5[1], var5[2], lastX, lastY, lastZ) > 0.01) {
+                  if (distanceSq(var5[0], var5[1], var5[2], lastX, lastY, lastZ) > 0.01
+                     || !HomeAnchorRules.withinLook(angles[0],angles[1],lastYaw,lastPitch,SETTLE_LOOK_TOLERANCE)) {
                      stableSinceMs = var3;
                   }
 
                   lastX = var5[0];
                   lastY = var5[1];
                   lastZ = var5[2];
+                  lastYaw = angles[0];
+                  lastPitch = angles[1];
                   if (var3 - stableSinceMs >= 650L) {
                      finishReturn(var3);
                      return;
@@ -315,24 +381,29 @@ public final class HomePositionGuardRuntime {
                lastX = var5[0];
                lastY = var5[1];
                lastZ = var5[2];
+               lastYaw = angles[0];
+               lastPitch = angles[1];
                System.out.println("[Auto Ominous] Home Guard: /home 1 teleport detected for capture.");
             }
 
             if (teleportSeen) {
-               if (distanceSq(var5[0], var5[1], var5[2], lastX, lastY, lastZ) > 0.01) {
+               if (distanceSq(var5[0], var5[1], var5[2], lastX, lastY, lastZ) > 0.01
+                  || !HomeAnchorRules.withinLook(angles[0],angles[1],lastYaw,lastPitch,SETTLE_LOOK_TOLERANCE)) {
                   stableSinceMs = var3;
                }
 
                lastX = var5[0];
                lastY = var5[1];
                lastZ = var5[2];
+               lastYaw = angles[0];
+               lastPitch = angles[1];
                if (var3 - stableSinceMs >= 650L) {
-                  saveAnchor(var5[0], var5[1], var5[2], var6);
+                  saveAnchor(var5[0], var5[1], var5[2], var6,angles[0],angles[1],"teleport");
                   transit = HomePositionGuardRuntime.Transit.NONE;
                   guardCooldownUntilMs = var3 + 1000L;
                   returnFailureLatched = false;
                   requestAutoUseRearm();
-                  actionbar(String.format(Locale.ROOT, "Home 1 saved: %.2f %.2f %.2f", anchorX, anchorY, anchorZ));
+                  actionbar(String.format(Locale.ROOT, "Home 1 saved: %.2f %.2f %.2f | yaw %.1f pitch %.1f", anchorX, anchorY, anchorZ,anchorYaw,anchorPitch));
                   System.out
                      .println(
                         "[Auto Ominous] Home Guard: Home 1 anchor saved at " + fmt(anchorX) + "," + fmt(anchorY) + "," + fmt(anchorZ) + " world=" + anchorWorld
@@ -351,6 +422,11 @@ public final class HomePositionGuardRuntime {
             }
 
             if (homeSendCount < 2) {
+               if (isAutoTpaBusy() || isOtherTransactionBusy(var0)) {
+                  actionbar("Home 1 retry deferred: waiting for the current interaction to finish.");
+                  abortTransit(var3, false);
+                  return;
+               }
                prepareForHomeTransit(var0, var1);
                sendHome1(var0);
                homeSendCount++;
@@ -377,7 +453,7 @@ public final class HomePositionGuardRuntime {
    }
 
    private static void finishReturn(long var0) {
-      System.out.println("[Auto Ominous] Home Guard: returned to saved Home 1 anchor and position is stable.");
+      System.out.println("[Auto Ominous] Home Guard: saved Home 1 position/look reached and stable.");
       transit = HomePositionGuardRuntime.Transit.NONE;
       guardCooldownUntilMs = var0 + 1000L;
       returnFailureLatched = false;
@@ -529,9 +605,21 @@ public final class HomePositionGuardRuntime {
          return true;
       }
 
-      double var7 = var0 - anchorX;
-      double var9 = var4 - anchorZ;
-      return var7 * var7 + var9 * var9 > 0.09 || Math.abs(var2 - anchorY) > 1.0;
+      return !HomeAnchorRules.withinPosition(var0,var2,var4,anchorX,anchorY,anchorZ,DeathRecoverySettings.getHomeGuardPositionTolerance());
+   }
+
+   private static boolean isOutsideLook(Object player) {
+      double[] angles = look(player);
+      return anchorLookSet && angles != null
+         && !HomeAnchorRules.withinLook(angles[0],angles[1],anchorYaw,anchorPitch,DeathRecoverySettings.getHomeGuardLookTolerance());
+   }
+
+   private static boolean isOtherTransactionBusy(Object client) {
+      return getField(client,"field_1755") != null
+         || invokeStaticBoolean("dev.autoominous.BountyRuntime","isBlockingSell",false)
+         || invokeStaticBoolean("dev.autoominous.SwordRecoveryRuntime","isRecoveryActive",false)
+         || invokeStaticBoolean("dev.autoominous.TransactionGate","isSeaSellActive",false)
+         || invokeStaticBoolean("dev.autoominous.CommandBroker","isBackoffActive",false);
    }
 
    private static boolean isInsideAnchor(double var0, double var2, double var4, String var6) {
@@ -574,12 +662,16 @@ public final class HomePositionGuardRuntime {
       }
    }
 
-   private static void saveAnchor(double var0, double var2, double var4, String var6) {
+   private static void saveAnchor(double var0, double var2, double var4, String var6,double yaw,double pitch,String mode) {
       anchorX = var0;
       anchorY = var2;
       anchorZ = var4;
       anchorWorld = var6 == null ? "" : var6;
       anchorSet = true;
+      anchorYaw = yaw;
+      anchorPitch = pitch;
+      anchorLookSet = true;
+      anchorCaptureMode = mode;
       saveAnchorFile();
    }
 
@@ -600,13 +692,19 @@ public final class HomePositionGuardRuntime {
             }
 
             boolean var8 = Boolean.parseBoolean(var1.getProperty("verifiedTeleportCapture", "false"));
-            anchorSet = var8 && Boolean.parseBoolean(var1.getProperty("set", "false"));
-            anchorX = parseDouble(var1.getProperty("x"), 0.0);
-            anchorY = parseDouble(var1.getProperty("y"), 0.0);
-            anchorZ = parseDouble(var1.getProperty("z"), 0.0);
+            anchorCaptureMode = var1.getProperty("captureMode", "teleport");
+            anchorSet = (var8 || "manual".equals(anchorCaptureMode)) && Boolean.parseBoolean(var1.getProperty("set", "false"));
+            anchorX = parseDouble(var1.getProperty("x"), Double.NaN);
+            anchorY = parseDouble(var1.getProperty("y"), Double.NaN);
+            anchorZ = parseDouble(var1.getProperty("z"), Double.NaN);
+            anchorSet &= HomeAnchorRules.finite(anchorX,anchorY,anchorZ);
             anchorWorld = var1.getProperty("world", "");
-            if (!var8 && Boolean.parseBoolean(var1.getProperty("set", "false"))) {
-               System.out.println("[Auto Ominous] Home Guard: ignored legacy unverified Home 1 anchor; Capture Home 1 again on FIX11.");
+            anchorYaw = parseDouble(var1.getProperty("yaw"), Double.NaN);
+            anchorPitch = parseDouble(var1.getProperty("pitch"), Double.NaN);
+            anchorLookSet = anchorSet && Boolean.parseBoolean(var1.getProperty("lookSet", "false"))
+               && HomeAnchorRules.finite(anchorYaw,anchorPitch) && Math.abs(anchorPitch) <= 90.0;
+            if (!var8 && !"manual".equals(anchorCaptureMode) && Boolean.parseBoolean(var1.getProperty("set", "false"))) {
+               System.out.println("[Auto Ominous] Home Guard: ignored legacy unverified anchor; use Capture Home 1 or Save Home 1 Here again.");
             }
          } catch (Throwable var7) {
             System.err.println("[Auto Ominous] Home Guard: anchor load failed: " + var7.getMessage());
@@ -624,11 +722,14 @@ public final class HomePositionGuardRuntime {
          var1.setProperty("y", Double.toString(anchorY));
          var1.setProperty("z", Double.toString(anchorZ));
          var1.setProperty("world", anchorWorld == null ? "" : anchorWorld);
-         var1.setProperty("horizontalTolerance", "0.30");
-         var1.setProperty("verifiedTeleportCapture", "true");
+         var1.setProperty("yaw", Double.toString(anchorYaw));
+         var1.setProperty("pitch", Double.toString(anchorPitch));
+         var1.setProperty("lookSet", Boolean.toString(anchorLookSet));
+         var1.setProperty("captureMode", anchorCaptureMode);
+         var1.setProperty("verifiedTeleportCapture", Boolean.toString("teleport".equals(anchorCaptureMode)));
 
          try (BufferedWriter var2 = Files.newBufferedWriter(var0, StandardCharsets.UTF_8)) {
-            var1.store(var2, "Auto Ominous - Home 1 Position Guard");
+            var1.store(var2, "Auto Ominous - Home 1 Position and Look Guard");
          }
       } catch (Throwable var7) {
          System.err.println("[Auto Ominous] Home Guard: anchor save failed: " + var7.getMessage());
@@ -657,10 +758,24 @@ public final class HomePositionGuardRuntime {
          double var1 = ((Number)var0.getClass().getMethod("method_23317").invoke(var0)).doubleValue();
          double var3 = ((Number)var0.getClass().getMethod("method_23318").invoke(var0)).doubleValue();
          double var5 = ((Number)var0.getClass().getMethod("method_23321").invoke(var0)).doubleValue();
-         return new double[]{var1, var3, var5};
+         return HomeAnchorRules.finite(var1,var3,var5) ? new double[]{var1, var3, var5} : null;
       } catch (Throwable var7) {
          return null;
       }
+   }
+
+   private static double[] look(Object player) {
+      if (player == null) return null;
+      try {
+         double yaw = ((Number)player.getClass().getMethod("method_36454").invoke(player)).doubleValue();
+         double pitch = ((Number)player.getClass().getMethod("method_36455").invoke(player)).doubleValue();
+         return HomeAnchorRules.finite(yaw,pitch) && Math.abs(pitch) <= 90.0 ? new double[]{yaw,pitch} : null;
+      } catch (ReflectiveOperationException error) { return null; }
+   }
+
+   private static boolean invokeBoolean(Object instance,String method,boolean fallback) {
+      Object result = invokeNoArg(instance,method);
+      return result instanceof Boolean ? (Boolean)result : fallback;
    }
 
    private static String worldKey(Object var0) {

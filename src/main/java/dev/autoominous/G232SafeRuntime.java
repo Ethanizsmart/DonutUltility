@@ -42,6 +42,10 @@ public final class G232SafeRuntime {
       return recoveryPending || recoveryHalted;
    }
 
+   public static void resetForMaster() {
+      clearRecovery("Master toggle");
+   }
+
    public static void resetForDeathRecovery() {
       clearRecovery("new death recovery session");
    }

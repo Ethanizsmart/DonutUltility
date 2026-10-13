@@ -8,7 +8,7 @@ public final class InputBroker {
 
    public static void tick(boolean var0) {
       boolean var1 = ReflectionSupport.callStaticBoolean("dev.autoominous.SlashSellSettings", "isAutoUseProtectedEnabled", false);
-      boolean var2 = var0 && var1 && TransactionGate.isInputIdle();
+      boolean var2 = MasterAutomation.isEnabled() && var0 && var1 && TransactionGate.isInputIdle();
       if (!var2) {
          ReflectionSupport.callStaticVoid("dev.autoominous.ProtectedItemAutoUseRuntime", "forceRelease");
          wasAllowed = false;

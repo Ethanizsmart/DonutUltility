@@ -16,6 +16,12 @@ public final class AutomationCoordinator {
    }
 
    public static void onTick() {
+      if (!MasterAutomation.isEnabled()) {
+         MasterAutomation.persistSettingsWhilePaused();
+         InputBroker.forceRelease();
+         GuiBroker.reset();
+         return;
+      }
       long var0 = System.currentTimeMillis();
       Object var2 = ReflectionSupport.mc();
       Object var3 = ReflectionSupport.field(var2, "field_1724");
@@ -190,6 +196,14 @@ public final class AutomationCoordinator {
       lastHomeStamp = Long.MIN_VALUE;
       anchorStableSinceMs = -1L;
       System.err.println("[Auto Ominous] Coordinator: terminal recovery abort: " + var0 + "; Sell/RMB ownership released.");
+   }
+
+   public static void resetForMaster() {
+      connected = false;
+      resetVolatileOnly();
+      CommandBroker.reset();
+      InputAuditRuntime.reset();
+      GuiBroker.reset();
    }
 
    private static void resetSession(String var0) {

@@ -72,3 +72,10 @@ tasks.register('verifyAuctionSwordRules', JavaExec) {
 }
 tasks.named('check') { dependsOn 'verifyAuctionSwordRules' }
 
+tasks.register('verifyHomeAnchorRules', JavaExec) {
+    dependsOn auctionChecksClasses
+    classpath = sourceSets.auctionChecks.runtimeClasspath
+    mainClass = 'dev.autoominous.HomeAnchorRulesChecks'
+}
+tasks.named('check') { dependsOn 'verifyHomeAnchorRules' }
+
