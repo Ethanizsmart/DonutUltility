@@ -1,0 +1,6 @@
+G2.4 Sell Rhythm
+Target normal multi-type sell: ~8-11s typical, hard deadline unchanged.
+pickup-place V2: 65% 4-6t, 27% 6-9t, 8% 9-13t.
+verification V2: 3-5t.
+after-stack V2: 4-7t base; 16% +4-9t micro-pause; 2% +12-20t rare pause.
+Duplicate quick-move path unchanged to preserve throughput.

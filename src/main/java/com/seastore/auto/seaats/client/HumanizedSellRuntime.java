@@ -1,5 +1,8 @@
 package com.seastore.auto.seaats.client;
 
+import dev.autoominous.FarmCycleRuntime;
+import dev.autoominous.HumanBehaviorProfile;
+import dev.autoominous.OminousSurplusSellPolicy;
 import dev.autoominous.SlashSellSettings;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
@@ -39,73 +42,7 @@ public final class HumanizedSellRuntime {
    }
 
    public static void tickMoving(class_310 var0) {
-      if (var0 != null && var0.field_1724 != null && var0.field_1761 != null && AutoSellLogic.isSellGuiOpen(var0)) {
-         class_1703 var1 = ((class_465)var0.field_1755).method_17577();
-         ensureSession(var1);
-         if (phase == 1) {
-            handlePickupIssued(var0, var1);
-         } else if (phase == 2) {
-            handlePlaceIssued(var0, var1);
-         } else if (phase == 3) {
-            handleQuickMoveIssued(var0, var1);
-         } else {
-            long var2 = System.nanoTime();
-            if (var2 < hardDeadlineNanos && var2 < softDeadlineNanos) {
-               if (duplicateBurstRemaining > 0 && duplicateSignature != null && findEmptySellSlot(var1) >= 0) {
-                  int var4 = findDuplicateInventorySlot(var1, duplicateSignature);
-                  if (var4 >= 0) {
-                     quickSourceSlot = var4;
-                     sourceSignature = var1.method_7611(var4).method_7677().method_7972();
-                     var0.field_1761.method_2906(var1.field_7763, var4, 0, class_1713.field_7794, var0.field_1724);
-                     phase = 3;
-                     phaseRetries = 0;
-                     phaseStartedNanos = var2;
-                     AutoSellLogic.currentState = AutoSellLogic.State.MOVING_ITEMS;
-                     AutoSellLogic.tickDelay = isV2() ? random(2, 4) : random(3, 6);
-                     return;
-                  }
-
-                  duplicateBurstRemaining = 0;
-                  duplicateSignature = null;
-               }
-
-               int var7 = findNextSellableInventorySlot(var1);
-               if (var7 < 0) {
-                  if (hasBatchContents(var1)) {
-                     scheduleConfirm();
-                  } else {
-                     closeAndIdle(var0);
-                  }
-               } else {
-                  int var5 = findEmptySellSlot(var1);
-                  if (var5 < 0) {
-                     scheduleConfirm();
-                  } else {
-                     class_1799 var6 = var1.method_7611(var7).method_7677();
-                     sourceSignature = var6.method_7972();
-                     sourceSlot = var7;
-                     destSlot = var5;
-                     var0.field_1761.method_2906(var1.field_7763, var7, 0, class_1713.field_7790, var0.field_1724);
-                     phase = 1;
-                     phaseRetries = 0;
-                     phaseStartedNanos = var2;
-                     AutoSellLogic.currentState = AutoSellLogic.State.MOVING_ITEMS;
-                     AutoSellLogic.tickDelay = delayBetweenPickupAndPlace();
-                  }
-               }
-            } else {
-               if (hasBatchContents(var1)) {
-                  scheduleConfirm();
-               } else {
-                  closeAndIdle(var0);
-               }
-            }
-         }
-      } else {
-         clearSession();
-         AutoSellLogic.currentState = AutoSellLogic.State.IDLE;
-         AutoSellLogic.tickDelay = random(6, 12);
-      }
+      BulkSellRuntime.tickMoving(var0);
    }
 
    private static void handlePickupIssued(class_310 var0, class_1703 var1) {
@@ -255,14 +192,15 @@ public final class HumanizedSellRuntime {
    private static void ensureSession(class_1703 var0) {
       if (sessionStartNanos == 0L) {
          sessionStartNanos = System.nanoTime();
-         long var1 = isV2() ? random(22500, 25000) : random(25000, 27000);
+         long var1 = isV2() ? random(19000, 21000) : random(25000, 27000);
          softDeadlineNanos = sessionStartNanos + var1 * 1000000L;
-         hardDeadlineNanos = sessionStartNanos + (isV2() ? 27500L : 29000L) * 1000000L;
+         hardDeadlineNanos = sessionStartNanos + (isV2() ? 22000L : 29000L) * 1000000L;
          completedSincePause = 0;
       }
 
       if (handler != var0) {
          handler = var0;
+         OminousSurplusSellPolicy.prepareSellGui(class_310.method_1551(), var0);
          phase = 0;
          phaseRetries = 0;
          quickSourceSlot = -1;
@@ -273,51 +211,30 @@ public final class HumanizedSellRuntime {
    }
 
    private static int findNextSellableInventorySlot(class_1703 var0) {
-      int var1 = var0.field_7761.size();
-      int var2 = Math.max(0, var1 - 36);
-      int[] var3 = new int[4];
-      int var4 = 0;
-
-      for (int var5 = var2; var5 < var1 && var4 < var3.length; var5++) {
-         if (isSellable(var0, var5)) {
-            var3[var4++] = var5;
-         }
-      }
-
-      if (var4 == 0) {
-         return -1;
-      } else if (isV2() && var4 != 1) {
-         int var6 = random(0, 99);
-         if (var6 < 68) {
-            return var3[0];
-         } else {
-            return var6 < 90 && var4 > 1 ? var3[1] : var3[Math.min(var4 - 1, random(1, Math.min(3, var4 - 1)))];
-         }
-      } else {
-         return var3[0];
-      }
+      return SellRhythmRuntime.selectSlot(var0);
    }
 
    private static int findDuplicateInventorySlot(class_1703 var0, class_1799 var1) {
       if (var1 == null) {
          return -1;
-      } else {
-         int var2 = var0.field_7761.size();
-         int var3 = Math.max(0, var2 - 36);
-
-         for (int var4 = var3; var4 < var2; var4++) {
-            class_1799 var5 = var0.method_7611(var4).method_7677();
-            if (AutoSellLogic.isSellableInventorySlot(class_310.method_1551(), var0.method_7611(var4)) && class_1799.method_31577(var5, var1)) {
-               return var4;
-            }
-         }
-
-         return -1;
       }
+
+      int var2 = var0.field_7761.size();
+      int var3 = Math.max(0, var2 - 36);
+
+      for (int var4 = var3; var4 < var2; var4++) {
+         class_1799 var5 = var0.method_7611(var4).method_7677();
+         if (!var5.method_7960() && !AutoSellLogic.isProtectedNeverSellItem(var5) && class_1799.method_31577(var5, var1)) {
+            return var4;
+         }
+      }
+
+      return -1;
    }
 
    private static boolean isSellable(class_1703 var0, int var1) {
-      return AutoSellLogic.isSellableInventorySlot(class_310.method_1551(), var0.method_7611(var1));
+      class_1799 var2 = var0.method_7611(var1).method_7677();
+      return !var2.method_7960() && !OminousSurplusSellPolicy.isProtectedForTransfer(var2);
    }
 
    private static int findEmptySellSlot(class_1703 var0) {
@@ -379,36 +296,6 @@ public final class HumanizedSellRuntime {
       AutoSellLogic.tickDelay = isV2() ? random(4, 12) : random(3, 6);
    }
 
-   private static int delayBetweenPickupAndPlace() {
-      if (!isV2()) {
-         return random(3, 6);
-      } else {
-         int var0 = random(0, 99);
-         if (var0 < 74) {
-            return random(3, 5);
-         } else {
-            return var0 < 95 ? random(5, 8) : random(8, 12);
-         }
-      }
-   }
-
-   private static int delayAfterPlaceForVerification() {
-      return isV2() ? random(2, 4) : random(3, 6);
-   }
-
-   private static int delayAfterCompletedStack() {
-      if (!isV2()) {
-         return random(3, 6);
-      } else {
-         int var0 = random(3, 5);
-         if (ThreadLocalRandom.current().nextInt(100) < 13) {
-            var0 += random(4, 12);
-         }
-
-         return var0;
-      }
-   }
-
    private static void returnHeldStackToSourceIfPossible(class_310 var0, class_1703 var1) {
       try {
          class_1799 var2 = var1.method_34255();
@@ -465,6 +352,7 @@ public final class HumanizedSellRuntime {
       sourceSignature = null;
       duplicateBurstRemaining = 0;
       completedSincePause = 0;
+      SellRhythmRuntime.reset();
    }
 
    private static boolean isV2() {
@@ -476,7 +364,7 @@ public final class HumanizedSellRuntime {
    }
 
    private static int random(int var0, int var1) {
-      return ThreadLocalRandom.current().nextInt(var0, var1 + 1);
+      return HumanBehaviorProfile.sellRandom(var0, var1);
    }
 
    public static boolean isHardDeadlineSwordHold() {
@@ -488,19 +376,19 @@ public final class HumanizedSellRuntime {
    }
 
    public static boolean shouldEnableSeaAutoSell() {
-      return true;
+      return FarmCycleRuntime.shouldEnableSeaAutoSell();
    }
 
    public static int priorityForOminous() {
-      return 3;
+      return FarmCycleRuntime.priorityForOminous();
    }
 
    public static int priorityForFirework() {
-      return 2;
+      return FarmCycleRuntime.priorityForFirework();
    }
 
    public static int priorityForSword() {
-      return 1;
+      return FarmCycleRuntime.priorityForSword();
    }
 
    private static boolean isBulkSameItemTransfer() {
@@ -512,9 +400,29 @@ public final class HumanizedSellRuntime {
    }
 
    private static void latchHardDeadlineIfReached() {
-      // Match LCMP and integer boolean operations, including eager evaluation.
       hardDeadlineSwordHold = ((((Long.compare(hardDeadlineNanos, 0L) + 1) >>> 1)
             & ((Long.compare(System.nanoTime(), hardDeadlineNanos) >>> 31) ^ 1))
          | (hardDeadlineSwordHold ? 1 : 0)) != 0;
+   }
+
+   private static int delayBetweenPickupAndPlace() {
+      if (!isV2()) {
+         return random(3, 6);
+      } else {
+         int var0 = random(0, 99);
+         if (var0 < 65) {
+            return random(4, 6);
+         } else {
+            return var0 < 92 ? random(6, 9) : random(9, 13);
+         }
+      }
+   }
+
+   private static int delayAfterPlaceForVerification() {
+      return isV2() ? random(3, 5) : random(3, 6);
+   }
+
+   private static int delayAfterCompletedStack() {
+      return SellRhythmRuntime.nextDelayTicks();
    }
 }

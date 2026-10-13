@@ -1,0 +1,4 @@
+G2.19 targeted HUD patch
+- Profit label is white; Profit amount is green.
+- Profit/h label is white; Profit/h amount is green.
+- No changes to profit calculation, sell logic, reconnect logic, bounty logic, or farm core.

@@ -28,7 +28,7 @@ public final class DisconnectSettings {
    private static double lastRadius;
    private static String lastWhitelist;
    private static String lastLog;
-   private static boolean initialized;
+   private static boolean initialized = true;
 
    private DisconnectSettings() {
    }
@@ -50,16 +50,16 @@ public final class DisconnectSettings {
       String var1 = safeWhitelist();
       if (var1.isBlank()) {
          return var0;
-      } else {
-         for (String var5 : var1.split("[,;\\s]+")) {
-            String var6 = var5.trim();
-            if (!var6.isEmpty()) {
-               var0.add(var6.toLowerCase(Locale.ROOT));
-            }
-         }
-
-         return var0;
       }
+
+      for (String var5 : var1.split("[,;\\s]+")) {
+         String var6 = var5.trim();
+         if (!var6.isEmpty()) {
+            var0.add(var6.toLowerCase(Locale.ROOT));
+         }
+      }
+
+      return var0;
    }
 
    public static void addToWhitelist(String var0) {
@@ -204,6 +204,5 @@ public final class DisconnectSettings {
    static {
       loadFromDisk();
       snapshot();
-      initialized = true;
    }
 }

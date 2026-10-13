@@ -14,9 +14,9 @@ final class PayBalanceReply {
    static BigDecimal parse(String var0) {
       if (var0 == null) {
          return null;
-      } else {
-         Matcher var1 = REPLY.matcher(ChatMoneyListener.normalize(var0));
-         return !var1.matches() ? null : new BigDecimal(var1.group(1).replace(",", ""));
       }
+
+      Matcher var1 = REPLY.matcher(ChatMoneyListener.normalize(var0));
+      return !var1.matches() ? null : new BigDecimal(var1.group(1).replace(",", ""));
    }
 }

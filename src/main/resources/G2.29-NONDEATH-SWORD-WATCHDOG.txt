@@ -1,0 +1,8 @@
+G2.29 NON-DEATH SWORD WATCHDOG
+- Optional GUI toggle under Death Recovery: Auto Buy Sword After 30s Missing (default OFF)
+- While alive, continuously missing any sword for 30s arms the proven G2.28 AH sword purchase flow.
+- Death recovery has priority and cancels the non-death watchdog owner.
+- If a sword returns before purchase completes, AH is cancelled to avoid duplicate purchase.
+- FarmCycle and Protected Auto-Use are blocked while watchdog-owned AH recovery is active.
+- Toggle persists in config/autoominous-missing-sword.properties.
+- G2.28 AH exact-Yes + pre-click atomic guard classes are otherwise unchanged.

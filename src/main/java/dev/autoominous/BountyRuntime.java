@@ -26,109 +26,108 @@ public final class BountyRuntime {
    private BountyRuntime() {
    }
 
-   public static void resetForMaster() { disable(); enabledKnown = false; }
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) { disable(); enabledKnown = false; return; }
-      BountySettings.maybePersist();
-      boolean var0 = BountySettings.isEnabled();
-      long var1 = System.currentTimeMillis();
-      if (!enabledKnown) {
-         enabledKnown = true;
-         lastEnabled = var0;
-         if (var0) {
-            resetAndStart(var1, false);
-         } else {
-            state = BountyRuntime.State.OFF;
+      if (!G232SafeRuntime.isSwordRecoverySuspended()) {
+         BountySettings.maybePersist();
+         boolean var0 = BountySettings.isEnabled();
+         long var1 = System.currentTimeMillis();
+         if (!enabledKnown) {
+            enabledKnown = true;
+            lastEnabled = var0;
+            if (var0) {
+               resetAndStart(var1, false);
+            } else {
+               state = BountyRuntime.State.OFF;
+            }
+         } else if (var0 != lastEnabled) {
+            lastEnabled = var0;
+            ClientStatusMessage.actionbar("Auto Bounty " + (var0 ? "§aON" : "§cOFF"));
+            if (var0) {
+               resetAndStart(var1, true);
+            } else {
+               disable();
+            }
          }
-      } else if (var0 != lastEnabled) {
-         lastEnabled = var0;
-         ClientStatusMessage.actionbar("Auto Bounty " + (var0 ? "§aON" : "§cOFF"));
-         if (var0) {
-            resetAndStart(var1, true);
-         } else {
-            disable();
-         }
-      }
 
-      if (var0) {
-         String var3 = BountySettings.getTarget();
-         if (!var3.matches("[A-Za-z0-9_]{1,32}")) {
-            status = "Invalid target username";
-            state = BountyRuntime.State.WAITING_INTERVAL;
-            nextRunAtMs = var1 + minutesToMs(BountySettings.getIntervalMinutes());
-         } else {
-            try {
-               BountyMinecraftBridge var4 = bridge();
-               Object var5 = var4.getClient();
-               switch (state) {
-                  case OFF:
-                     resetAndStart(var1, false);
-                     break;
-                  case WAITING_INTERVAL:
-                     if (var1 >= nextRunAtMs) {
-                        if (DeathRecoveryRuntime.isRecoveryPending()) {
-                           status = "Waiting for Death Recovery";
-                           nextRunAtMs = var1 + 1000L;
-                        } else {
+         if (var0) {
+            String var3 = BountySettings.getTarget();
+            if (!var3.matches("[A-Za-z0-9_]{1,32}")) {
+               status = "Invalid target username";
+               state = BountyRuntime.State.WAITING_INTERVAL;
+               nextRunAtMs = var1 + minutesToMs(BountySettings.getIntervalMinutes());
+            } else {
+               try {
+                  BountyMinecraftBridge var4 = bridge();
+                  Object var5 = var4.getClient();
+                  switch (state) {
+                     case OFF:
+                        resetAndStart(var1, false);
+                        break;
+                     case WAITING_INTERVAL:
+                        if (var1 >= nextRunAtMs) {
+                           if (DeathRecoveryRuntime.isRecoveryPending()) {
+                              status = "Waiting for Death Recovery";
+                              nextRunAtMs = var1 + 1000L;
+                           } else {
+                              var4.closeAnyHandledScreen(var5);
+                              requestBalance(var5, var1, "Checking balance...");
+                           }
+                        }
+                        break;
+                     case WAITING_BALANCE:
+                        if (var1 >= deadlineAtMs) {
+                           scheduleRetry("No /balance response", var1);
+                        }
+                        break;
+                     case WAITING_COMMAND_DELAY:
+                        if (var1 >= deadlineAtMs) {
                            var4.closeAnyHandledScreen(var5);
-                           requestBalance(var5, var1, "Checking balance...");
+                           sendBountyCommand(var5, var1);
                         }
-                     }
-                     break;
-                  case WAITING_BALANCE:
-                     if (var1 >= deadlineAtMs) {
-                        scheduleRetry("No /balance response", var1);
-                     }
-                     break;
-                  case WAITING_COMMAND_DELAY:
-                     if (var1 >= deadlineAtMs) {
-                        var4.closeAnyHandledScreen(var5);
-                        sendBountyCommand(var5, var1);
-                     }
-                     break;
-                  case WAITING_CONFIRM_GUI:
-                     BountyMinecraftBridge.ConfirmCandidate var6 = var4.findConfirm(var5);
-                     if (var6 != null) {
-                        confirmCandidate = var6;
-                        state = BountyRuntime.State.WAITING_CONFIRM_DELAY;
-                        deadlineAtMs = var1 + secondsToMs(BountySettings.getConfirmDelaySeconds());
-                        status = "Confirm found";
-                     } else if (var1 >= deadlineAtMs) {
-                        scheduleRetry("Confirm Bounty GUI not found", var1);
-                     }
-                     break;
-                  case WAITING_CONFIRM_DELAY:
-                     if (var1 >= deadlineAtMs) {
-                        if (var4.clickConfirm(var5, confirmCandidate)) {
-                           state = BountyRuntime.State.WAITING_SUCCESS;
-                           deadlineAtMs = var1 + 5000L;
-                           status = "Waiting for bounty SUCCESS";
-                        } else {
-                           scheduleRetry("Confirm button disappeared", var1);
+                        break;
+                     case WAITING_CONFIRM_GUI:
+                        BountyMinecraftBridge.ConfirmCandidate var6 = var4.findConfirm(var5);
+                        if (var6 != null) {
+                           confirmCandidate = var6;
+                           state = BountyRuntime.State.WAITING_CONFIRM_DELAY;
+                           deadlineAtMs = var1 + secondsToMs(BountySettings.getConfirmDelaySeconds());
+                           status = "Confirm found";
+                        } else if (var1 >= deadlineAtMs) {
+                           scheduleRetry("Confirm Bounty GUI not found", var1);
                         }
-                     }
-                     break;
-                  case WAITING_SUCCESS:
-                     if (var1 >= deadlineAtMs) {
-                        scheduleRetry("No bounty success message", var1);
-                     }
-                     break;
-                  case RETRY_WAIT:
-                     if (var1 >= deadlineAtMs) {
-                        var4.closeAnyHandledScreen(var5);
-                        requestBalance(var5, var1, "Retrying: checking balance...");
-                     }
+                        break;
+                     case WAITING_CONFIRM_DELAY:
+                        if (var1 >= deadlineAtMs) {
+                           if (var4.clickConfirm(var5, confirmCandidate)) {
+                              state = BountyRuntime.State.WAITING_SUCCESS;
+                              deadlineAtMs = var1 + 5000L;
+                              status = "Waiting for bounty SUCCESS";
+                           } else {
+                              scheduleRetry("Confirm button disappeared", var1);
+                           }
+                        }
+                        break;
+                     case WAITING_SUCCESS:
+                        if (var1 >= deadlineAtMs) {
+                           scheduleRetry("No bounty success message", var1);
+                        }
+                        break;
+                     case RETRY_WAIT:
+                        if (var1 >= deadlineAtMs) {
+                           var4.closeAnyHandledScreen(var5);
+                           requestBalance(var5, var1, "Retrying: checking balance...");
+                        }
+                  }
+               } catch (Throwable var7) {
+                  System.err.println("[DonutUtility/Bounty] Tick failed: " + var7);
+                  scheduleRetry("Minecraft action failed", var1);
                }
-            } catch (Throwable var7) {
-               System.err.println("[DonutUtility/Bounty] Tick failed: " + var7);
-               scheduleRetry("Minecraft action failed", var1);
             }
          }
       }
    }
 
    public static void onGameMessageObject(Object var0) {
-      if (!MasterAutomation.isEnabled()) return;
       if (BountySettings.isEnabled() && var0 != null) {
          try {
             onGameMessage(bridge().textToString(var0));
@@ -147,6 +146,7 @@ public final class BountyRuntime {
             String var5 = var4.group(2).trim();
             if (var5.equalsIgnoreCase(BountySettings.getTarget())) {
                lastAdded = currentBountyAmount;
+               BountyStatsBridge.recordSuccess(currentBountyAmount, var5);
                status = "SUCCESS: " + currentBountyAmount + " -> " + var5;
                state = BountyRuntime.State.WAITING_INTERVAL;
                nextRunAtMs = var2 + minutesToMs(BountySettings.getIntervalMinutes());
@@ -212,10 +212,10 @@ public final class BountyRuntime {
       long var0 = state == BountyRuntime.State.WAITING_INTERVAL ? nextRunAtMs : deadlineAtMs;
       if (var0 <= 0L) {
          return "-";
-      } else {
-         long var2 = (Math.max(0L, var0 - System.currentTimeMillis()) + 999L) / 1000L;
-         return String.format(Locale.ROOT, "%02d:%02d", var2 / 60L, var2 % 60L);
       }
+
+      long var2 = (Math.max(0L, var0 - System.currentTimeMillis()) + 999L) / 1000L;
+      return String.format(Locale.ROOT, "%02d:%02d", var2 / 60L, var2 % 60L);
    }
 
    public static String getLastAdded() {
@@ -332,18 +332,18 @@ public final class BountyRuntime {
    }
 
    private static long secondsToMs(double var0) {
-      return Math.max(0L, Math.round(var0 * 1000.0));
+      return HumanBehaviorProfile.bountyActionDelayMs(var0);
    }
 
    private static long minutesToMs(double var0) {
-      return Math.max(1L, Math.round(var0 * 60000.0));
+      return HumanBehaviorProfile.bountyIntervalMs(var0);
    }
 
    private static String fmt(double var0) {
       return Math.rint(var0) == var0 ? Long.toString(Math.round(var0)) : Double.toString(var0);
    }
 
-   private static enum State {
+   private enum State {
       OFF,
       WAITING_INTERVAL,
       WAITING_BALANCE,

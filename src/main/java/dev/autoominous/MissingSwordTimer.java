@@ -16,4 +16,8 @@ final class MissingSwordTimer {
    void reset() {
       missingSinceMs = -1L;
    }
+
+   long missingForMs(long nowMs) {
+      return missingSinceMs < 0L ? 0L : Math.max(0L, nowMs - missingSinceMs);
+   }
 }

@@ -15,39 +15,41 @@ record PayReceipt(String recipient, BigDecimal value, int unitPower, String disp
    static PayReceipt parse(String var0) {
       if (var0 == null) {
          return null;
-      } else {
-         Matcher var1 = REPLY.matcher(ChatMoneyListener.normalize(var0));
-         if (!var1.matches()) {
-            return null;
-         } else {
-            BigDecimal var2 = new BigDecimal(var1.group(2).replace(",", ""));
-            if (var2.signum() <= 0) {
-               return null;
-            } else {
-               String var3 = var1.group(3) == null ? "" : var1.group(3).toUpperCase(Locale.ROOT);
-
-               byte var4 = switch (var3) {
-                  case "K" -> 3;
-                  case "M" -> 6;
-                  case "B" -> 9;
-                  default -> 0;
-               };
-               return new PayReceipt(var1.group(1), var2, var4, "$" + var1.group(2) + var3);
-            }
-         }
       }
+
+      Matcher var1 = REPLY.matcher(ChatMoneyListener.normalize(var0));
+      if (!var1.matches()) {
+         return null;
+      }
+
+      BigDecimal var2 = new BigDecimal(var1.group(2).replace(",", ""));
+      if (var2.signum() <= 0) {
+         return null;
+      }
+
+      String var3 = var1.group(3) == null ? "" : var1.group(3).toUpperCase(Locale.ROOT);
+
+      byte var4 = switch (var3) {
+         case "K" -> 3;
+         case "M" -> 6;
+         case "B" -> 9;
+         default -> 0;
+      };
+      return new PayReceipt(var1.group(1), var2, var4, "$" + var1.group(2) + var3);
    }
 
    boolean matches(String var1, BigDecimal var2) {
       if (!this.recipient.equalsIgnoreCase(var1) || var2 == null) {
          return false;
-      } else if (this.unitPower == 0) {
-         return this.value.compareTo(var2) == 0;
-      } else {
-         BigDecimal var3 = var2.movePointLeft(this.unitPower);
-         return var3.setScale(this.value.scale(), RoundingMode.HALF_UP).compareTo(this.value) == 0
-            || var3.setScale(this.value.scale(), RoundingMode.DOWN).compareTo(this.value) == 0;
       }
+
+      if (this.unitPower == 0) {
+         return this.value.compareTo(var2) == 0;
+      }
+
+      BigDecimal var3 = var2.movePointLeft(this.unitPower);
+      return var3.setScale(this.value.scale(), RoundingMode.HALF_UP).compareTo(this.value) == 0
+         || var3.setScale(this.value.scale(), RoundingMode.DOWN).compareTo(this.value) == 0;
    }
 
    static boolean isInvalidNumber(String var0) {

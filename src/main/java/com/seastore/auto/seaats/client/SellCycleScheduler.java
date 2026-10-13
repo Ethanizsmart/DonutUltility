@@ -1,6 +1,7 @@
 package com.seastore.auto.seaats.client;
 
 import com.seastore.auto.seaats.Config;
+import dev.autoominous.HumanBehaviorProfile;
 import java.util.Random;
 
 public final class SellCycleScheduler {
@@ -40,7 +41,7 @@ public final class SellCycleScheduler {
       int var2 = Math.max(1, Math.min(72000, var0[currentCycle]));
       int var3 = Math.max(var2, Math.min(72000, var1[currentCycle]));
       selectedDelay = var2 + RANDOM.nextInt(var3 - var2 + 1);
-      return selectedDelay;
+      return selectedDelay = HumanBehaviorProfile.sellCycleDelayTicks(selectedDelay, currentCycle);
    }
 
    private static void ensureCycle() {

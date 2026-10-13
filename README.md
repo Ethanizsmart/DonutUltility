@@ -1,92 +1,92 @@
-# Donut Utility — source khôi phục
+# Donut Utility CoreV2 — mã nguồn khôi phục
 
-Project Fabric cho Minecraft **1.21.11**, mod ID `donututility`, phiên bản **1.1.6**.
-Source giữ tên Minecraft **Intermediary** (`class_*`, `method_*`, `field_*`).
+Khôi phục từ `DonutUtility-CoreV2-v0.2.35-G2.35-SWORD-INVENTORY-RECOVERY.jar`.
+Đã biên dịch và build thành công cho Minecraft **1.21.11 / Java 21**.
+Phiên bản release hiện tại trong `fabric.mod.json` là **1.1.8**; tên JAR gốc là nhãn bản vá riêng.
 
-## Build trên máy hiện tại
+Bản hiện tại đã tích hợp **Death Recovery và Auto Buy Sword 5 giây** từ release
+1.1.7 theo yêu cầu, **giữ luồng `/sell` CoreV2 hiện tại**. Chi tiết thay đổi,
+89 kiểm tra đã qua và giới hạn thử nghiệm: [DEATH_RECOVERY_PORT.md](DEATH_RECOVERY_PORT.md).
 
-Mở PowerShell trong thư mục chứa README này:
+Tải bản cài đặt và mã nguồn đầy đủ ở [release v1.1.8](https://github.com/Ethanizsmart/DonutUltility/releases/tag/v1.1.8).
+
+## Mở để chỉnh sửa
+
+Mở thư mục chứa README này bằng IntelliJ IDEA hoặc VS Code, rồi import/reload
+dự án **Gradle**. Chọn **JDK 21** cho Gradle JVM. Máy hiện tại có JDK 21 tại
+`D:\Android Studio\jbr`; Java mặc định trên PATH là 26, nên cần chọn đúng JDK.
+Không mở từng file Java như một dự án độc lập.
+
+Mã cần chỉnh nằm trong `src/main/java`; tài nguyên và metadata ở `src/main/resources`.
+Dự án giữ namespace Intermediary của JAR gốc: `class_*`, `method_*`, `field_*`.
+Đây là các tên Minecraft hợp lệ trong mô hình Gradle này.
+
+## Build sau khi chỉnh sửa
+
+Trong PowerShell tại thư mục dự án:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
+```
+
+Script dùng JDK 21 cho lượt build, sau đó trả lại biến môi trường cũ.
+Nếu chuyển sang máy khác:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -JdkHome 'C:\path\to\jdk-21'
+```
+
+Hoặc dùng wrapper trực tiếp:
 
 ```powershell
 $env:JAVA_HOME = 'D:\Android Studio\jbr'
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"
-.\gradlew.bat --version
-.\gradlew.bat compileJava --rerun-tasks
 .\gradlew.bat build
 ```
 
-Trên máy khác, đặt `JAVA_HOME` tới JDK 21 đã cài. Không cần cài Gradle toàn cục.
-Wrapper tải Gradle 9.4.0 và kiểm tra SHA-256 của distribution.
-Không dùng Java 26 trên PATH làm compiler mặc định của project này.
+JAR chạy trong game:
+`build/libs/DonutUtility-CoreV2-restored-1.1.8.jar`.
+File `*-sources.jar` chứa mã nguồn, không phải mod để bỏ vào `mods`.
 
-JAR runtime: `build/libs/donututility-1.1.6.jar`.
-JAR source: `build/libs/donututility-1.1.6-sources.jar`.
-Không dùng JAR trong `build/devlibs` để cài mod.
+Build được pin: Gradle 9.4.0, Loom 1.16.3, Loader 0.18.4,
+Fabric API 0.141.3+1.21.11, MaLiLib 0.27.14.
+Đây là bộ phiên bản đã build thành công, không phải khẳng định phiên bản công cụ
+mà tác giả JAR ban đầu đã dùng. Minecraft cần các dependency mod tương ứng.
 
-Dependencies được ghim trong `build.gradle`: Loader 0.18.4, Fabric API
-0.141.3+1.21.11, MaLiLib 0.27.14; plugin Loom 1.16.3.
-Dependencies Minecraft cung cấp như Gson, Brigadier, JOML không bị đóng gói trùng.
+## Các điểm bắt đầu chỉnh mod
 
-## VS Code và development client
-
-Mở **chính thư mục này** bằng VS Code, import dưới dạng Gradle project.
-Cần hỗ trợ Java và Java Debugger. Chọn JDK 21 cho Gradle và project runtime,
-rồi đợi Gradle import hoàn tất. Các tên `class_*` là chủ ý, không thay imports
-bằng tên Yarn/Mojang chỉ để loại bỏ lỗi IDE.
-
-```powershell
-.\gradlew.bat vscode
-```
-
-Lệnh trên đã chạy thành công, sinh `.vscode/launch.json`, launch config và tải
-assets development. Sinh lại nếu chuyển đường dẫn project. Cấu hình **Minecraft
-Client** có thể dùng để đặt breakpoint và debug sau khi IDE import thành công.
-Cấu hình server do Loom sinh mặc định không phải mục tiêu của mod client-only này.
-
-Khi chủ động muốn mở game trong profile development:
-
-```powershell
-.\gradlew.bat runClient
-```
-
-**Chưa chạy game/debug thực tế.** Phiên khôi phục chỉ chạy `runClient --dry-run`.
-Để kiểm thử tiếp, dùng profile riêng tại `run`, cấu hình giả và môi trường kiểm
-thử kiểm soát được; kiểm tra GUI/save/load trước khi thử automation. Không chép
-cấu hình tài khoản hoặc webhook thật vào profile kiểm thử.
-
-## Điểm mở rộng
-
-| Công việc | Vị trí bắt đầu |
+| Muốn chỉnh | File/thư mục |
 |---|---|
-| Class/module mới | `src/main/java/dev/autoominous` |
-| Khởi tạo | `AutoOminousMod`, `AutoOminousInitHandler` |
-| Settings GUI/tab | `gui/AutoOminousGuiConfigs` và lớp `*Settings` tương ứng |
-| Keybind | `event/AutoOminousInputHandler`, `AutoOminousSettings` |
-| HUD | `mixin/StatsHudMixin`, `StatsRuntime`, `StatsProfitRateRuntime` |
-| Bounty | `BountyRuntime`, `BountyMinecraftBridge`, `BountySettings` |
-| Auto sell | `AutoSellRuntime`, `SlashSellRuntime`, `AutoSellLogic`, `HumanizedSellRuntime` |
-| Phục hồi/an toàn | `DeathRecoveryRuntime`, `SwordRecoveryRuntime`, `HomePositionGuardRuntime`, `VexSafetyRuntime` |
+| Đăng ký mod và cấu hình | `dev/autoominous/AutoOminousMod.java`, `AutoOminousInitHandler.java` |
+| Giao diện cấu hình, tab | `dev/autoominous/gui/AutoOminousGuiConfigs.java` |
+| Phím tắt | `dev/autoominous/event/AutoOminousInputHandler.java`, `AutoOminousSettings.java` |
+| Tick, chat, HUD, kết nối | `dev/autoominous/mixin/` |
+| /sell và nhịp thao tác | `SlashSellRuntime.java`, `SlashSellSettings.java`, `com/seastore/auto/seaats/client/AutoSellLogic.java` |
+| Hồi sinh và mua kiếm/AH | `DeathRecoveryRuntime.java`, `RecoverySellBridge.java`, `SwordRecoveryRuntime.java`, `AuctionSwordRules.java`, `MissingSwordTimer.java` |
+| Logic điều phối CoreV2 | `dev/autoominous/v2/core/`, `v2/broker/`, `v2/job/`, `v2/service/`, `CoreV2RuntimeBridge.java` |
+| Dịch giao diện | `src/main/resources/assets/autoominous/lang/` |
 
-Một setting mới cần đủ khai báo → GUI → validation → save/load → nơi sử dụng.
-Keybind cần thêm vào map và danh mục. Một automation mới phải tôn trọng quyền
-sử dụng container và các điều kiện chặn của Bounty/Home/Death/Sword/Vex; không
-chỉ thêm một callback tick độc lập.
+Một tùy chọn mới cần có giá trị mặc định, binding GUI, lưu/đọc cấu hình và chỗ sử dụng.
+Khi thêm automation, kiểm tra các broker/guard để tránh gửi lệnh hoặc thao tác
+inventory trùng với luồng đang chạy. `CoreV2RuntimeBridge` có luồng shadow;
+đọc đường gọi hiện có trước khi bật thêm hành động.
 
-Giữ metadata `fabric.mod.json` và danh sách mixin đồng bộ nếu thêm entrypoint
-hoặc mixin. Sau chỉnh sửa, compile/build lại và kiểm tra riêng hành vi vừa đổi.
+## Giới hạn khôi phục
 
-Xem [RESTORATION_REPORT.md](RESTORATION_REPORT.md) để biết bằng chứng, giới hạn,
-các thay đổi source và mức sẵn sàng phát triển.
+JAR gốc thiếu `CoreV2RuntimeBridge$AnchorStatus` và `$SwordStatus`.
+Hai lớp dữ liệu này đã được dựng lại với sự đồng ý của bạn, từ constructor,
+descriptor và các trường mà bytecode sử dụng. Giá trị sentinel được suy luận:
+`OUTSIDE = (false, 0L)`, `EMPTY = (false, false, false)`; không có bytecode gốc
+để chứng minh chính xác initializer của hai lớp thiếu.
 
-Master automation: starts OFF on every game launch. Press F8 to toggle all configured automation. The master key can be changed in the Utility GUI (X+C), under Toggle All Automation. Turning OFF cancels pending work and releases item use; individual feature settings are preserved.
+Đã sửa lỗi generics, boolean arithmetic, thứ tự khởi tạo static, numeric boxing
+và reflection varargs do decompile. Không bật lại các getter cố ý trả `false`
+trong bản gốc. Bản gốc và baseline nguyên trạng nằm cạnh dự án, trong
+`../restoration/original/` và `../restoration/baseline/`.
 
-Auto sell: Ominous Bottles in the 27 main inventory slots are sold; Ominous Bottles in the 9 hotbar slots remain protected.
+Kiểm tra ở giai đoạn khôi phục trước khi thêm tính năng: compile/build, đối chiếu 146 lớp gốc và chữ ký thành viên,
+thứ tự enum, annotations sau chuẩn hóa biểu diễn Mixin, 28 trường hợp parser,
+300 trường hợp phép toán và lời gọi đóng màn hình với một tham số null.
+`test NO-SOURCE` của Gradle không phải một bộ unit test đã chạy.
 
-Sword recovery after death now uses `/ah sword looting 3` instead of `/order`.
-After the home position settles, it checks for an existing Diamond Sword with actual Looting III.
-If all 27 main inventory slots are occupied, configured Auto /sell may run until a main slot is free.
-The Auction filter is the hopper in the 48th cell (slot ID 47). The active option is detected from the bright label color in the styled tooltip, while inactive options are dark gray. The recovery left-clicks only when Highest Price or Recently Listed is active. When Lowest Price is bright, it stops clicking and chooses the cheapest eligible sword on the sorted first page, with a hard price cap of $5,000,000. If colors are ambiguous or menu contents incomplete, it waits rather than cycling blindly.
-Listings with missing, ambiguous or unsupported prices are skipped. Prices support $ amounts and K/M/B suffixes.
-Purchase confirmation supports both container menus and the native Yes/No dialog titled "Are you sure you want to buy this?". The displayed sword must match the selected Looting III sword, and the displayed price must equal the selected price and remain at or below $5,000,000. For the native dialog, action buttons are found recursively inside the scrollable body and the real Yes button callback is invoked once; recovery then waits for the inventory update before proceeding. Missing or conflicting prices are not confirmed. Unrecognized confirmations are closed and the search retries.
-If no suitable listing is found, menus time out, or purchase verification fails, the search repeats with a 2–3 second pause. Recovery finishes only after a verified Looting III Diamond Sword is in the hotbar.
-`gradlew.bat verifyAuctionSwordRules` runs the offline price/filter regression checks (also included in `build`). Live debugger inspection verified the actual purchase dialog title, matching Looting III enchantments, $1.5M price, and Yes/No buttons nested inside the scrollable body. After the recursive button fix, the Yes callback completed and recovery entered VERIFY_PURCHASE. Auto-use debugging verified hotbar sword selection, use-key holding and repeat calls. End-to-end receipt was not captured in that debug session; the user subsequently confirmed the current version was working.
+**Chưa chạy Minecraft, chưa kiểm tra mod load, GUI/HUD hoặc automation trên server.**
+Chi tiết và bằng chứng: `RESTORATION_REPORT.md` và `../restoration/logs/`.

@@ -1,0 +1,7 @@
+G2.33 SELL GUI RELOG RECOVERY
+- Existing AutoSellLogic already retries /sell and backs off when the sell GUI does not open.
+- New watchdog observes AutoSellLogic.sellFailureRounds.
+- One failed round means three consecutive /sell GUI-open attempts timed out.
+- After one failed round, while Auto Reconnect is allowed, the client disconnects intentionally and reuses the existing AutoReconnectRuntime to rejoin.
+- Foreign-player safety remains authoritative: if SafetyReconnectBridge has paused reconnect, this watchdog will not force a relog.
+- After reconnect, stale sell retry counters/deadlines are cleared.

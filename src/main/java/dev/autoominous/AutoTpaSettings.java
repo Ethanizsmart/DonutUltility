@@ -26,7 +26,7 @@ public final class AutoTpaSettings {
    private static boolean lastEnabled;
    private static int lastDelay;
    private static String lastWhitelist;
-   private static boolean initialized;
+   private static boolean initialized = true;
 
    private AutoTpaSettings() {
    }
@@ -36,7 +36,7 @@ public final class AutoTpaSettings {
    }
 
    public static int getDelayMs() {
-      return TPA_DELAY_MS.getIntegerValue();
+      return HumanBehaviorProfile.tpaDelayMs(TPA_DELAY_MS.getIntegerValue());
    }
 
    public static boolean isWhitelisted(String var0) {
@@ -160,6 +160,5 @@ public final class AutoTpaSettings {
    static {
       loadFromDisk();
       snapshot();
-      initialized = true;
    }
 }

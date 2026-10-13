@@ -1,0 +1,4 @@
+G2.17 SELL45 + CONSUMABLE HOTBAR RECOVERY
+- sell capacity hard limit 45; 45/45 confirm; 44/45 single move
+- OMI/firework auto-promote from inventory to hotbar
+- completion by total item count decrement, baseline armed before use

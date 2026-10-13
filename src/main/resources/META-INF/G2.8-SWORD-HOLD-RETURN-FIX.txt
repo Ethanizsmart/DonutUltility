@@ -1,0 +1,4 @@
+G2.8 Sword Hold Return Fix
+- Hold/select returned sword after firework during MACHINE_RUNNING/WAIT_RETURN
+- If returned sword disappears from inventory while WAIT_RETURN, treat as pot accepted and advance to WAIT_OMI
+- Sellable loot still preempts into LOOT_SETTLE/SELL

@@ -10,12 +10,9 @@ public final class AutoReconnectRuntime {
    private AutoReconnectRuntime() {
    }
 
-   public static void resetForMaster() { nextAttemptAtMs = 0L; wasTriggered = false; }
-
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) { nextAttemptAtMs = 0L; wasTriggered = false; return; }
       AutoReconnectSettings.maybePersist();
-      if (!AutoReconnectSettings.isEnabled()) {
+      if (!SafetyReconnectBridge.allowAutoReconnect(AutoReconnectSettings.isEnabled())) {
          nextAttemptAtMs = 0L;
          wasTriggered = false;
       } else {
@@ -80,7 +77,7 @@ public final class AutoReconnectRuntime {
    }
 
    private static long delayMs() {
-      return Math.max(500L, Math.round(AutoReconnectSettings.getReconnectDelaySeconds() * 1000.0));
+      return HumanBehaviorProfile.reconnectDelayMs(AutoReconnectSettings.getReconnectDelaySeconds());
    }
 
    private static Object minecraftClient() throws Exception {
@@ -104,17 +101,17 @@ public final class AutoReconnectRuntime {
    private static Object field(Object var0, String var1) {
       if (var0 == null) {
          return null;
-      } else {
-         for (Class var2 = var0.getClass(); var2 != null; var2 = var2.getSuperclass()) {
-            try {
-               Field var3 = var2.getDeclaredField(var1);
-               var3.setAccessible(true);
-               return var3.get(var0);
-            } catch (Throwable var4) {
-            }
-         }
-
-         return null;
       }
+
+      for (Class var2 = var0.getClass(); var2 != null; var2 = var2.getSuperclass()) {
+         try {
+            Field var3 = var2.getDeclaredField(var1);
+            var3.setAccessible(true);
+            return var3.get(var0);
+         } catch (Throwable var4) {
+         }
+      }
+
+      return null;
    }
 }

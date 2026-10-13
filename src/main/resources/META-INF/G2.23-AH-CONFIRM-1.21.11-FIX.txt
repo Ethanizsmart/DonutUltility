@@ -1,0 +1,1 @@
+G2.23 AH confirm fix: trust pre-click verified listing in WAIT_CONFIRM; confirm context only; 2s confirm window; ButtonWidget.method_25306(AbstractInput) 1.21.11 support; single press then inventory authority.

@@ -1,0 +1,8 @@
+G2.15 Sell Rhythm Profile v1
+- one stack = one QUICK_MOVE action
+- session tempo: FAST 25%, NORMAL 60%, SLOW 15%
+- local slot wandering, not fixed 0->35 sweep
+- max two consecutive same-item stacks
+- occasional short/long pauses
+- existing Ominous/protected policy preserved
+- executor/confirm/Vex/Death/Home/FarmCycle/RMB unchanged

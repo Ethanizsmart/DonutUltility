@@ -1,6 +1,8 @@
 package com.seastore.auto.seaats.client;
 
 import com.seastore.auto.seaats.Config;
+import dev.autoominous.G232SafeRuntime;
+import dev.autoominous.OminousSurplusSellPolicy;
 import dev.autoominous.ProtectedItemAutoUseRuntime;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -15,7 +17,6 @@ import net.minecraft.class_1657;
 import net.minecraft.class_1661;
 import net.minecraft.class_1703;
 import net.minecraft.class_1713;
-import net.minecraft.class_1735;
 import net.minecraft.class_1799;
 import net.minecraft.class_1802;
 import net.minecraft.class_2561;
@@ -28,8 +29,6 @@ import net.minecraft.class_746;
 @Environment(EnvType.CLIENT)
 public class AutoSellLogic {
    static int tickDelay = 0;
-   private static String lastPayAmountLabel = "";
-   private static String payRecipientSnapshot = "";
    static AutoSellLogic.State currentState = AutoSellLogic.State.IDLE;
    private static final Random RANDOM = new Random();
    private static AutoSellLogic.AntiPlayerState antiState = AutoSellLogic.AntiPlayerState.IDLE;
@@ -66,7 +65,9 @@ public class AutoSellLogic {
    private static class_304 ghostSneakKey;
    private static boolean wasAutoSellOnBeforeAnti;
    private static int expectedSellReceiptTicks;
+   private static String lastPayAmountLabel = "";
    private static boolean payAllRequest;
+   private static String payRecipientSnapshot = "";
    private static BigDecimal payBalance;
    private static long payBalanceDeadlineNanos;
    private static class_634 payConnection;
@@ -112,17 +113,17 @@ public class AutoSellLogic {
    public static boolean hasInventoryItems(class_310 var0) {
       if (var0.field_1724 == null) {
          return false;
-      } else {
-         class_1661 var1 = var0.field_1724.method_31548();
-
-         for (int var2 = 0; var2 < 36; var2++) {
-            if (isSellableInventoryItem(var1.method_5438(var2), var2)) {
-               return true;
-            }
-         }
-
-         return false;
       }
+
+      class_1661 var1 = var0.field_1724.method_31548();
+
+      for (int var2 = 0; var2 < 36; var2++) {
+         if (!var1.method_5438(var2).method_7960() && !OminousSurplusSellPolicy.isProtectedForInventoryProbe(var1.method_5438(var2))) {
+            return true;
+         }
+      }
+
+      return false;
    }
 
    static boolean isSellGuiOpen(class_310 var0) {
@@ -131,35 +132,27 @@ public class AutoSellLogic {
          if (var0.field_1724 != null && var3 == var0.field_1724.field_7512) {
             if (var3 == knownSellHandler) {
                return true;
-            } else {
-               int var4 = var3.field_7761.size() - 36;
-               if (var4 < 0) {
-                  var4 = var3.field_7761.size();
-               }
-
-               for (int var5 = 0; var5 < var4; var5++) {
-                  if (var3.method_7611(var5).method_7677().method_31574(class_1802.field_8581)) {
-                     knownSellHandler = var3;
-                     return true;
-                  }
-               }
-
-               return false;
             }
+
+            int var4 = var3.field_7761.size() - 36;
+            if (var4 < 0) {
+               var4 = var3.field_7761.size();
+            }
+
+            for (int var5 = 0; var5 < var4; var5++) {
+               if (var3.method_7611(var5).method_7677().method_31574(class_1802.field_8581)) {
+                  knownSellHandler = var3;
+                  return true;
+               }
+            }
+
+            return false;
          } else {
             return false;
          }
       } else {
          return false;
       }
-   }
-
-   public static boolean isInventorySellComplete(class_310 client) {
-      return client.field_1724 != null
-         && currentState == State.IDLE
-         && client.field_1755 == null
-         && !hasActiveMenu(client)
-         && !hasInventoryItems(client);
    }
 
    private static List<class_1657> getNearbyPlayers(class_310 var0, double var1) {
@@ -170,15 +163,15 @@ public class AutoSellLogic {
    private static boolean isFriend(String var0) {
       if (Config.friendList == null) {
          return false;
-      } else {
-         for (String var2 : Config.friendList) {
-            if (var2.trim().equalsIgnoreCase(var0.trim())) {
-               return true;
-            }
-         }
-
-         return false;
       }
+
+      for (String var2 : Config.friendList) {
+         if (var2.trim().equalsIgnoreCase(var0.trim())) {
+            return true;
+         }
+      }
+
+      return false;
    }
 
    private static void sendSellCommand(class_310 var0) {
@@ -255,6 +248,7 @@ public class AutoSellLogic {
    }
 
    private static void resetSellControl() {
+      HumanizedSellRuntime.forceReset();
       currentState = AutoSellLogic.State.IDLE;
       tickDelay = 0;
       lastSellCommandSentMs = 0L;
@@ -268,29 +262,33 @@ public class AutoSellLogic {
    }
 
    private static boolean waitForSellContents(class_310 var0) {
+      if (currentState == AutoSellLogic.State.MOVING_ITEMS) {
+         return false;
+      }
+
       if (!isSellGuiOpen(var0)) {
          return false;
-      } else {
-         class_1703 var1 = ((class_465)var0.field_1755).method_17577();
-         int var2 = Math.max(0, var1.field_7761.size() - 36);
-
-         for (int var3 = 0; var3 < var2; var3++) {
-            if (var1.method_7611(var3).method_7677().method_31574(class_1802.field_8581)) {
-               sellContentsDeadlineNanos = 0L;
-               return false;
-            }
-         }
-
-         if (sellContentsDeadlineNanos == 0L) {
-            sellContentsDeadlineNanos = System.nanoTime() + 8000000000L;
-         }
-
-         if (System.nanoTime() - sellContentsDeadlineNanos >= 0L) {
-            scheduleSellRetry(var0, "confirmed sell menu contents stayed unavailable for 8s");
-         }
-
-         return true;
       }
+
+      class_1703 var1 = ((class_465)var0.field_1755).method_17577();
+      int var2 = Math.max(0, var1.field_7761.size() - 36);
+
+      for (int var3 = 0; var3 < var2; var3++) {
+         if (var1.method_7611(var3).method_7677().method_31574(class_1802.field_8581)) {
+            sellContentsDeadlineNanos = 0L;
+            return false;
+         }
+      }
+
+      if (sellContentsDeadlineNanos == 0L) {
+         sellContentsDeadlineNanos = System.nanoTime() + 8000000000L;
+      }
+
+      if (System.nanoTime() - sellContentsDeadlineNanos >= 0L) {
+         scheduleSellRetry(var0, "confirmed sell menu contents stayed unavailable for 8s");
+      }
+
+      return true;
    }
 
    public static void toggleFromKey(class_310 var0) {
@@ -317,279 +315,237 @@ public class AutoSellLogic {
    }
 
    public static void tick(class_310 var0) {
-      if (!dev.autoominous.MasterAutomation.isEnabled()) return;
-      if (expectedSellReceiptTicks > 0) {
-         expectedSellReceiptTicks--;
-      }
-
-      if (var0.field_1724 != null && var0.field_1687 != null && var0.method_1562() != null) {
-         if (sellConnection != var0.method_1562() || sellPlayer != var0.field_1724) {
-            resetSellControl();
-            sellConnection = var0.method_1562();
-            sellPlayer = var0.field_1724;
+      if (!G232SafeRuntime.isSwordRecoverySuspended()) {
+         if (expectedSellReceiptTicks > 0) {
+            expectedSellReceiptTicks--;
          }
 
-         if (isPaying
-            && (
-               !Config.enableAutoPay
-                  || Config.payAll != payAllRequest
-                  || !payRecipientSnapshot.equals(Config.payRecipient.trim())
-                  || var0.method_1562() != payConnection
-            )) {
-            finishAutoPay(
-               var0,
-               payCommandSent
-                  ? "Dừng chờ Auto Pay vì cấu hình hoặc kết nối thay đổi; lệnh đã gửi có thể vẫn được server xử lý."
-                  : "Đã hủy lượt Auto Pay vì cấu hình hoặc kết nối thay đổi."
-            );
-         }
-
-         if (isPaying && payCommandSent) {
-            checkPayConfirmation(var0);
-         }
-
-         if (isPaying && payAllRequest && !payCommandSent && System.nanoTime() - payBalanceDeadlineNanos >= 0L) {
-            finishAutoPay(var0, "Không nhận được số dư /bal hợp lệ trong 10 giây; bỏ qua lượt chuyển.");
-         }
-
-         if (!Config.enableHome || !Config.isHomeSet) {
-            isHomeRecovering = false;
-         }
-
-         if (var0.field_1755 instanceof SeaSettingsScreen) {
-            if (isGhostFixing) {
-               finishGhostFix(var0);
+         if (var0.field_1724 != null && var0.field_1687 != null && var0.method_1562() != null) {
+            if (sellConnection != var0.method_1562() || sellPlayer != var0.field_1724) {
+               resetSellControl();
+               sellConnection = var0.method_1562();
+               sellPlayer = var0.field_1724;
             }
 
-            Config.lastMoneyReceivedMs = System.currentTimeMillis();
-         } else if (var0.field_1755 != null && !(var0.field_1755 instanceof class_465)) {
-            if (isGhostFixing) {
-               finishGhostFix(var0);
+            if (isPaying
+               && (
+                  !Config.enableAutoPay
+                     || Config.payAll != payAllRequest
+                     || !payRecipientSnapshot.equals(Config.payRecipient.trim())
+                     || var0.method_1562() != payConnection
+               )) {
+               finishAutoPay(
+                  var0,
+                  payCommandSent
+                     ? "Dừng chờ Auto Pay vì cấu hình hoặc kết nối thay đổi; lệnh đã gửi có thể vẫn được server xử lý."
+                     : "Đã hủy lượt Auto Pay vì cấu hình hoặc kết nối thay đổi."
+               );
             }
 
-            Config.lastMoneyReceivedMs = System.currentTimeMillis();
-         } else {
-            SellCycleScheduler.tick(
-               Config.isAutoSellEnabled && !isPaying && !isGhostFixing && antiState == AutoSellLogic.AntiPlayerState.IDLE && !isHomeRecovering
-            );
-            if (var0.field_1724 != null && var0.field_1687 != null) {
-               if (Config.enableGhostFix && Config.isAutoSellEnabled && !isGhostFixing) {
-                  long var1 = Math.max(1, Config.ghostTimeoutMinutes) * 60L * 1000L;
-                  if (System.currentTimeMillis() - Config.lastMoneyReceivedMs > var1) {
-                     isGhostFixing = true;
-                     ghostTimer = 0;
-                     ghostStep = 0;
-                     ghostPearlCount = 0;
-                     Config.isAutoSellEnabled = false;
-                     closeAllGui(var0);
-                     ghostSneakKey = var0.field_1690.field_1832;
-                     setGhostSneak(false);
-                     String var14 = var0.field_1724.method_5477().getString();
-                     WebhookHelper.sendAlert("**\ud83e\uddf9 Chống Ghost Item**\n" + var14 + " đang thực hiện chống ghost item...");
-                     var0.field_1724
-                        .method_7353(class_2561.method_43470("§e[SeaATS] Không nhận được tiền bán. Đang nhấn Shift 2 lần để đồng bộ lại..."), false);
-                     System.out.println("[SeaATS] Ghost fix triggered (no money received for " + Config.ghostTimeoutMinutes + " min)");
-                     return;
-                  }
+            if (isPaying && payCommandSent) {
+               checkPayConfirmation(var0);
+            }
+
+            if (isPaying && payAllRequest && !payCommandSent && System.nanoTime() - payBalanceDeadlineNanos >= 0L) {
+               finishAutoPay(var0, "Không nhận được số dư /bal hợp lệ trong 10 giây; bỏ qua lượt chuyển.");
+            }
+
+            if (!Config.enableHome || !Config.isHomeSet) {
+               isHomeRecovering = false;
+            }
+
+            if (var0.field_1755 instanceof SeaSettingsScreen) {
+               if (isGhostFixing) {
+                  finishGhostFix(var0);
                }
 
+               Config.lastMoneyReceivedMs = System.currentTimeMillis();
+            } else if (var0.field_1755 != null && !(var0.field_1755 instanceof class_465)) {
                if (isGhostFixing) {
-                  tickGhostFix(var0);
-               } else {
-                  if (Config.enableAutoPay && !isPaying && antiState == AutoSellLogic.AntiPlayerState.IDLE) {
-                     long var8 = Config.payIntervalMinutes * 60L * 1000L;
-                     if (System.currentTimeMillis() - lastPayTimeMs > var8) {
-                        startAutoPay(var0);
+                  finishGhostFix(var0);
+               }
+
+               Config.lastMoneyReceivedMs = System.currentTimeMillis();
+            } else {
+               SellCycleScheduler.tick(
+                  Config.isAutoSellEnabled && !isPaying && !isGhostFixing && antiState == AutoSellLogic.AntiPlayerState.IDLE && !isHomeRecovering
+               );
+               if (var0.field_1724 != null && var0.field_1687 != null) {
+                  if (Config.enableGhostFix && Config.isAutoSellEnabled && !isGhostFixing) {
+                     long var1 = Math.max(1, Config.ghostTimeoutMinutes) * 60L * 1000L;
+                     if (System.currentTimeMillis() - Config.lastMoneyReceivedMs > var1) {
+                        isGhostFixing = true;
+                        ghostTimer = 0;
+                        ghostStep = 0;
+                        ghostPearlCount = 0;
+                        Config.isAutoSellEnabled = false;
+                        closeAllGui(var0);
+                        ghostSneakKey = var0.field_1690.field_1832;
+                        setGhostSneak(false);
+                        String var10 = var0.field_1724.method_5477().getString();
+                        WebhookHelper.sendAlert("**\ud83e\uddf9 Chống Ghost Item**\n" + var10 + " đang thực hiện chống ghost item...");
+                        var0.field_1724
+                           .method_7353(class_2561.method_43470("§e[SeaATS] Không nhận được tiền bán. Đang nhấn Shift 2 lần để đồng bộ lại..."), false);
+                        System.out.println("[SeaATS] Ghost fix triggered (no money received for " + Config.ghostTimeoutMinutes + " min)");
+                        return;
                      }
                   }
 
-                  if (isPaying) {
-                     tickAutoPay(var0);
+                  if (isGhostFixing) {
+                     tickGhostFix(var0);
                   } else {
-                     List<class_1657> var9;
-                     if (Config.antiPlayerEnabled
-                        && antiState == AutoSellLogic.AntiPlayerState.IDLE
-                        && !(var9 = getNearbyPlayers(var0, 5.0)).isEmpty()
-                        && !var9.stream().anyMatch(var0x -> isFriend(var0x.method_5477().getString()))) {
-                        triggerAntiPlayer(var0, (class_1657)var9.get(0));
+                     if (Config.enableAutoPay && !isPaying && antiState == AutoSellLogic.AntiPlayerState.IDLE) {
+                        long var6 = Config.payIntervalMinutes * 60L * 1000L;
+                        if (System.currentTimeMillis() - lastPayTimeMs > var6) {
+                           startAutoPay(var0);
+                        }
                      }
 
-                     if (antiState != AutoSellLogic.AntiPlayerState.IDLE) {
-                        tickAntiPlayer(var0);
-                     } else if (Config.isAutoSellEnabled && isHomeRecovering) {
-                        processHomeRecovery(var0);
-                     } else if (Config.isAutoSellEnabled
-                        && Config.isHomeSet
-                        && Config.enableHome
-                        && var0.field_1724.method_5649(Config.homeX, Config.homeY, Config.homeZ) > 4.0) {
-                        handleMovedAway(var0);
-                     } else if (!Config.isAutoSellEnabled) {
-                        if (currentState != AutoSellLogic.State.IDLE) {
-                           resetSellControl();
-                        }
+                     if (isPaying) {
+                        tickAutoPay(var0);
                      } else {
-                        if (currentState != AutoSellLogic.State.WAITING_GUI_OPEN && waitForSellContents(var0)) {
-                           return;
+                        List<class_1657> var7;
+                        if (Config.antiPlayerEnabled
+                           && antiState == AutoSellLogic.AntiPlayerState.IDLE
+                           && !(var7 = getNearbyPlayers(var0, 5.0)).isEmpty()
+                           && !var7.stream().anyMatch(var0x -> isFriend(var0x.method_5477().getString()))) {
+                           triggerAntiPlayer(var0, (class_1657)var7.get(0));
                         }
 
-                        if (tickDelay > 0) {
-                           tickDelay--;
+                        if (antiState != AutoSellLogic.AntiPlayerState.IDLE) {
+                           tickAntiPlayer(var0);
+                        } else if (Config.isAutoSellEnabled && isHomeRecovering) {
+                           processHomeRecovery(var0);
+                        } else if (Config.isAutoSellEnabled
+                           && Config.isHomeSet
+                           && Config.enableHome
+                           && var0.field_1724.method_5649(Config.homeX, Config.homeY, Config.homeZ) > 4.0) {
+                           handleMovedAway(var0);
+                        } else if (!Config.isAutoSellEnabled) {
+                           if (currentState != AutoSellLogic.State.IDLE) {
+                              resetSellControl();
+                           }
                         } else {
-                           if (currentState == AutoSellLogic.State.WAITING_GUI_OPEN) {
-                              if (!isSellGuiOpen(var0)) {
-                                 if (System.nanoTime() - sellOpenDeadlineNanos >= 0L) {
-                                    scheduleSellRetry(var0, "menu/confirm item did not become ready in 8s");
-                                 }
-
-                                 return;
-                              }
-
-                              sellCommandRetryCount = 0;
-                              sellFailureRounds = 0;
-                              sellRetryNotBeforeNanos = 0L;
-                              sellOpenDeadlineNanos = 0L;
-                              if (currentState == AutoSellLogic.State.WAITING_GUI_OPEN) {
-                                 currentState = AutoSellLogic.State.MOVING_ITEMS;
-                                 tickDelay = 2;
-                              }
+                           if (currentState != AutoSellLogic.State.WAITING_GUI_OPEN && waitForSellContents(var0)) {
+                              return;
                            }
 
-                           switch (currentState) {
-                              case IDLE:
+                           if (tickDelay > 0) {
+                              tickDelay--;
+                           } else {
+                              if (currentState == AutoSellLogic.State.WAITING_GUI_OPEN) {
                                  if (!isSellGuiOpen(var0)) {
-                                    if (hasInventoryItems(var0)) {
-                                       sendSellCommand(var0);
+                                    if (System.nanoTime() - sellOpenDeadlineNanos >= 0L) {
+                                       scheduleSellRetry(var0, "menu/confirm item did not become ready in 8s");
                                     }
-                                 } else {
-                                    sellCommandRetryCount = 0;
-                                    sellFailureRounds = 0;
-                                    sellRetryNotBeforeNanos = 0L;
-                                    sellOpenDeadlineNanos = 0L;
+
+                                    return;
+                                 }
+
+                                 sellCommandRetryCount = 0;
+                                 sellFailureRounds = 0;
+                                 sellRetryNotBeforeNanos = 0L;
+                                 sellOpenDeadlineNanos = 0L;
+                                 if (currentState == AutoSellLogic.State.WAITING_GUI_OPEN) {
                                     currentState = AutoSellLogic.State.MOVING_ITEMS;
                                     tickDelay = 2;
                                  }
-                              case WAITING_GUI_OPEN:
-                              default:
-                                 break;
-                              case MOVING_ITEMS:
-                                 if (!isSellGuiOpen(var0)) {
-                                    currentState = AutoSellLogic.State.IDLE;
-                                    tickDelay = 10;
-                                    sellCommandRetryCount = 0;
-                                 } else {
-                                    class_1703 var10 = ((class_465)var0.field_1755).method_17577();
-                                    int var13 = var10.field_7761.size() - 36;
-                                    if (var13 < 0) {
-                                       var13 = var10.field_7761.size();
+                              }
+
+                              switch (currentState) {
+                                 case IDLE:
+                                    if (!isSellGuiOpen(var0)) {
+                                       if (hasInventoryItems(var0)) {
+                                          sendSellCommand(var0);
+                                       }
+                                    } else {
+                                       sellCommandRetryCount = 0;
+                                       sellFailureRounds = 0;
+                                       sellRetryNotBeforeNanos = 0L;
+                                       sellOpenDeadlineNanos = 0L;
+                                       currentState = AutoSellLogic.State.MOVING_ITEMS;
+                                       tickDelay = 2;
+                                    }
+                                 case WAITING_GUI_OPEN:
+                                 default:
+                                    break;
+                                 case MOVING_ITEMS:
+                                    if (tickDelay > 0) {
+                                       return;
                                     }
 
-                                    int var15 = 0;
-                                    int var17 = 0;
-
-                                    for (; var17 < var13; var17++) {
-                                       class_1799 var6 = var10.method_7611(var17).method_7677();
-                                       if (!var6.method_7960() && !var6.method_31574(class_1802.field_8581)) {
-                                          var15++;
-                                       }
-                                    }
-
-                                    if (var15 < 45 && var13 - var15 > 1) {
-                                       var17 = var10.field_7761.size() - 36;
-                                       if (var17 < 0) {
-                                          var17 = 0;
+                                    HumanizedSellRuntime.tickMoving(var0);
+                                    return;
+                                 case CLICK_CONFIRM:
+                                    if (isSellGuiOpen(var0)) {
+                                       class_1703 var2 = ((class_465)var0.field_1755).method_17577();
+                                       int var3 = -1;
+                                       int var4 = var2.field_7761.size() - 36;
+                                       if (var4 < 0) {
+                                          var4 = var2.field_7761.size();
                                        }
 
-                                       boolean var19 = false;
-
-                                       for (int var7 = var17; var7 < var10.field_7761.size(); var7++) {
-                                          if (isSellableInventorySlot(var0, var10.method_7611(var7))) {
-                                             var0.field_1761.method_2906(var10.field_7763, var7, 0, class_1713.field_7794, var0.field_1724);
-                                             var19 = true;
+                                       for (int var5 = 0; var5 < var4; var5++) {
+                                          if (var2.method_7611(var5).method_7677().method_31574(class_1802.field_8581)) {
+                                             var3 = var5;
+                                             break;
                                           }
                                        }
 
-                                       if (var19) {
-                                          tickDelay = 2;
+                                       if (var3 != -1) {
+                                          expectedSellReceiptTicks = 200;
+                                          var0.field_1761.method_2906(var2.field_7763, var3, 0, class_1713.field_7790, var0.field_1724);
+                                          lastSellTimeMs = System.currentTimeMillis();
+                                          sellCommandRetryCount = 0;
+                                          tickDelay = 6;
+                                          currentState = AutoSellLogic.State.CLICK_CONFIRM_DELAYED;
                                        } else {
-                                          currentState = AutoSellLogic.State.CLICK_CONFIRM;
-                                          tickDelay = 3;
+                                          currentState = AutoSellLogic.State.IDLE;
+                                          tickDelay = 10;
                                        }
-                                    } else {
-                                       currentState = AutoSellLogic.State.CLICK_CONFIRM;
-                                       tickDelay = 3;
-                                    }
-                                 }
-                                 break;
-                              case CLICK_CONFIRM:
-                                 if (!isSellGuiOpen(var0)) {
-                                    currentState = AutoSellLogic.State.IDLE;
-                                 } else {
-                                    class_1703 var2 = ((class_465)var0.field_1755).method_17577();
-                                    int var3 = -1;
-                                    int var4 = var2.field_7761.size() - 36;
-                                    if (var4 < 0) {
-                                       var4 = var2.field_7761.size();
-                                    }
-
-                                    for (int var5 = 0; var5 < var4; var5++) {
-                                       if (var2.method_7611(var5).method_7677().method_31574(class_1802.field_8581)) {
-                                          var3 = var5;
-                                          break;
-                                       }
-                                    }
-
-                                    if (var3 != -1) {
-                                       expectedSellReceiptTicks = 200;
-                                       var0.field_1761.method_2906(var2.field_7763, var3, 0, class_1713.field_7790, var0.field_1724);
-                                       lastSellTimeMs = System.currentTimeMillis();
-                                       sellCommandRetryCount = 0;
-                                       tickDelay = 6;
-                                       currentState = AutoSellLogic.State.CLICK_CONFIRM_DELAYED;
                                     } else {
                                        currentState = AutoSellLogic.State.IDLE;
-                                       tickDelay = 10;
                                     }
-                                 }
-                                 break;
-                              case CLICK_CONFIRM_DELAYED:
-                                 closeAllGui(var0);
-                                 currentState = AutoSellLogic.State.IDLE;
-                                 tickDelay = 6;
-                           }
-
-                           if (Config.isAutoSellEnabled) {
-                              long var11 = Config.profitIntervalMinutes * 60L * 1000L;
-                              if (System.currentTimeMillis() - lastProfitReportMs > var11) {
-                                 lastProfitReportMs = System.currentTimeMillis();
-                                 long var16 = System.currentTimeMillis() - Config.startTimeMs;
-                                 WebhookHelper.sendReport(buildReport(var0, var16));
+                                    break;
+                                 case CLICK_CONFIRM_DELAYED:
+                                    HumanizedSellRuntime.tickAfterConfirm(var0);
+                                    return;
                               }
-                           }
 
-                           if (Config.isAutoSellEnabled && System.currentTimeMillis() - lastSellTimeMs > Config.noSellIntervalMinutes * 60L * 1000L) {
-                              String var12 = var0.field_1724.method_5477().getString();
-                              WebhookHelper.sendAlert("**Cảnh báo:** " + var12 + " đã " + Config.noSellIntervalMinutes + " phút không bán được item nào!");
-                              lastSellTimeMs = System.currentTimeMillis();
+                              if (Config.isAutoSellEnabled) {
+                                 long var8 = Config.profitIntervalMinutes * 60L * 1000L;
+                                 if (System.currentTimeMillis() - lastProfitReportMs > var8) {
+                                    lastProfitReportMs = System.currentTimeMillis();
+                                    long var11 = System.currentTimeMillis() - Config.startTimeMs;
+                                    WebhookHelper.sendReport(buildReport(var0, var11));
+                                 }
+                              }
+
+                              if (Config.isAutoSellEnabled && System.currentTimeMillis() - lastSellTimeMs > Config.noSellIntervalMinutes * 60L * 1000L) {
+                                 String var9 = var0.field_1724.method_5477().getString();
+                                 WebhookHelper.sendAlert("**Cảnh báo:** " + var9 + " đã " + Config.noSellIntervalMinutes + " phút không bán được item nào!");
+                                 lastSellTimeMs = System.currentTimeMillis();
+                              }
                            }
                         }
                      }
                   }
                }
             }
-         }
-      } else {
-         if (isPaying) {
-            finishAutoPay(var0, "");
-         }
+         } else {
+            if (isPaying) {
+               finishAutoPay(var0, "");
+            }
 
-         if (isGhostFixing) {
-            resetState();
-            Config.isAutoSellEnabled = true;
-         }
+            if (isGhostFixing) {
+               resetState();
+               Config.isAutoSellEnabled = true;
+            }
 
-         resetSellControl();
-         sellConnection = null;
-         sellPlayer = null;
+            resetSellControl();
+            sellConnection = null;
+            sellPlayer = null;
+         }
       }
    }
 
@@ -639,14 +595,14 @@ public class AutoSellLogic {
       BigDecimal var1 = PayBalanceReply.parse(var0);
       if (var1 == null) {
          return false;
-      } else {
-         class_310 var2 = class_310.method_1551();
-         if (isCurrentPayRequest(var2) && payAllRequest && !payCommandSent && payBalance == null && System.nanoTime() - payBalanceDeadlineNanos < 0L) {
-            payBalance = var1;
-         }
-
-         return true;
       }
+
+      class_310 var2 = class_310.method_1551();
+      if (isCurrentPayRequest(var2) && payAllRequest && !payCommandSent && payBalance == null && System.nanoTime() - payBalanceDeadlineNanos < 0L) {
+         payBalance = var1;
+      }
+
+      return true;
    }
 
    private static void tickAutoPay(class_310 var0) {
@@ -697,18 +653,18 @@ public class AutoSellLogic {
       boolean var2 = PayReceipt.isInvalidNumber(var0);
       if (var1 == null && !var2) {
          return false;
-      } else {
-         class_310 var3 = class_310.method_1551();
-         if (isCurrentPayRequest(var3) && payCommandSent && payReceipt == null && payFailure == null && System.nanoTime() - payConfirmationDeadlineNanos < 0L) {
-            if (var1 != null && var1.matches(payRecipientSnapshot, payExpectedAmount)) {
-               payReceipt = var1;
-            } else if (var2) {
-               payFailure = "Server từ chối số tiền: That number is invalid.";
-            }
-         }
-
-         return true;
       }
+
+      class_310 var3 = class_310.method_1551();
+      if (isCurrentPayRequest(var3) && payCommandSent && payReceipt == null && payFailure == null && System.nanoTime() - payConfirmationDeadlineNanos < 0L) {
+         if (var1 != null && var1.matches(payRecipientSnapshot, payExpectedAmount)) {
+            payReceipt = var1;
+         } else if (var2) {
+            payFailure = "Server từ chối số tiền: That number is invalid.";
+         }
+      }
+
+      return true;
    }
 
    private static void checkPayConfirmation(class_310 var0) {
@@ -822,13 +778,21 @@ public class AutoSellLogic {
    public static String trackerStatus() {
       if (isGhostFixing) {
          return "ĐỒNG BỘ";
-      } else if (isPaying) {
+      }
+
+      if (isPaying) {
          return payAllRequest && !payCommandSent ? "ĐỌC SỐ DƯ" : "CHỜ PAY";
-      } else if (antiState != AutoSellLogic.AntiPlayerState.IDLE) {
+      }
+
+      if (antiState != AutoSellLogic.AntiPlayerState.IDLE) {
          return "BẢO VỆ";
-      } else if (isHomeRecovering) {
+      }
+
+      if (isHomeRecovering) {
          return "VỀ HOME";
-      } else if (!Config.isAutoSellEnabled || currentState != AutoSellLogic.State.WAITING_GUI_OPEN && sellContentsDeadlineNanos == 0L) {
+      }
+
+      if (!Config.isAutoSellEnabled || currentState != AutoSellLogic.State.WAITING_GUI_OPEN && sellContentsDeadlineNanos == 0L) {
          if (Config.isAutoSellEnabled && System.nanoTime() - sellRetryNotBeforeNanos < 0L) {
             return "THỬ LẠI";
          } else {
@@ -842,10 +806,10 @@ public class AutoSellLogic {
    static boolean consumeExpectedSellReceipt() {
       if (expectedSellReceiptTicks <= 0) {
          return false;
-      } else {
-         expectedSellReceiptTicks = 0;
-         return true;
       }
+
+      expectedSellReceiptTicks = 0;
+      return true;
    }
 
    private static void triggerAntiPlayer(class_310 var0, class_1657 var1) {
@@ -1046,17 +1010,7 @@ public class AutoSellLogic {
       return String.format("%02d:%02d:%02d", var4, var6, var8);
    }
 
-   static boolean isSellableInventoryItem(class_1799 stack, int inventoryIndex) {
-      return InventorySellRules.canSell(stack.method_7960(), isProtectedHotbarItem(stack), inventoryIndex);
-   }
-
-   static boolean isSellableInventorySlot(class_310 client, class_1735 slot) {
-      return client.field_1724 != null
-         && slot.field_7871 == client.field_1724.method_31548()
-         && isSellableInventoryItem(slot.method_7677(), slot.method_34266());
-   }
-
-   static boolean isProtectedHotbarItem(class_1799 var0) {
+   static boolean isProtectedNeverSellItem(class_1799 var0) {
       return var0.method_31574(class_1802.field_8639)
          | var0.method_31574(class_1802.field_8450)
          | var0.method_31574(class_1802.field_8091)
@@ -1071,7 +1025,7 @@ public class AutoSellLogic {
    }
 
    @Environment(EnvType.CLIENT)
-   private static enum AntiPlayerState {
+   private enum AntiPlayerState {
       IDLE,
       THROWING_PEARL,
       WAITING_KILL,
@@ -1081,7 +1035,7 @@ public class AutoSellLogic {
    }
 
    @Environment(EnvType.CLIENT)
-   static enum State {
+   enum State {
       IDLE,
       WAITING_GUI_OPEN,
       MOVING_ITEMS,

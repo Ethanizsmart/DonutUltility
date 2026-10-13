@@ -1,0 +1,7 @@
+G2.14 AutoSell access bridge fix
+Makes only the AutoSellLogic members used by HumanizedSellRuntime package-accessible:
+- tickDelay
+- currentState
+- isSellGuiOpen(MinecraftClient)
+- isProtectedNeverSellItem(ItemStack)
+No sell timing/policy, FarmCycle, Vex, Death, Home, or RMB behavior changed.

@@ -1,0 +1,7 @@
+G2.5 Farm Cycle State Machine
+- Inventory/item-state authoritative route: sword -> OMI -> firework -> machine -> returned sword -> loot settle -> sell -> sword store.
+- Sword return is held through sell; RMB sword-store is permitted only before the cycle or after sell completes.
+- Firework and OMI use are gated to their physical cycle phases.
+- Loot settle uses five stable client ticks before enabling Sea Sell.
+- Post-sell missing sword waits up to 2000 ms, then fails closed without blind RMB.
+- 25-30 second machine duration is not used to force phase changes.

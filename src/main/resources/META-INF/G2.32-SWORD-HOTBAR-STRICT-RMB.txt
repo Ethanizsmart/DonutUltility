@@ -1,0 +1,1 @@
+G2.32: Safe inventory sword SWAP; prevent false STORE transitions; revalidate selected item on RMB key press and direct item use. AH flow untouched.

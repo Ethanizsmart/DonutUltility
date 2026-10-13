@@ -38,7 +38,7 @@ public final class SwordRecoveryRuntime {
    public static void onTick() {
       class_310 client = class_310.method_1551();
       DeathRecoverySettings.maybePersist();
-      if (!MasterAutomation.isEnabled() || !DeathRecoverySettings.isSwordRecoveryEnabled()) {
+      if (!DeathRecoverySettings.isSwordRecoveryEnabled()) {
          if (recoveryActive && client != null && client.field_1724 != null) closeRecoveryScreen(client);
          forceReset();
          return;
@@ -62,6 +62,12 @@ public final class SwordRecoveryRuntime {
          missingSwordTimer.reset();
          return;
       }
+      if (CommandBroker.isBackoffActive()
+         || ReflectionSupport.staticBoolean("dev.autoominous.AutoTpaRuntime", "awaitingConfirm", false)
+         || ReflectionSupport.staticField("dev.autoominous.AutoTpaRuntime", "pendingUser") != null) {
+         missingSwordTimer.reset();
+         return;
+      }
       long now = System.currentTimeMillis();
       if (!recoveryActive) {
          boolean absentForFiveSeconds = missingSwordTimer.update(findLootingDiamondSword(client, true) < 0, now);
@@ -76,6 +82,10 @@ public final class SwordRecoveryRuntime {
 
    public static boolean isRecoveryActive() {
       return recoveryActive;
+   }
+
+   public static long missingForMs() {
+      return missingSwordTimer.missingForMs(System.currentTimeMillis());
    }
 
    private static boolean tickRecovery(long var2, class_310 var4) {

@@ -19,7 +19,7 @@ public final class AutoReconnectSettings {
    public static final ConfigInteger HUD_X = new ConfigInteger("Reconnect HUD X", 8, -10000, 10000, "Horizontal position for the Auto Reconnect HUD.");
    public static final ConfigInteger HUD_Y = new ConfigInteger("Reconnect HUD Y", 56, -10000, 10000, "Vertical position for the Auto Reconnect HUD.");
    public static final List<IConfigBase> ALL_OPTIONS = List.of(AUTO_RECONNECT, RECONNECT_DELAY_SECONDS, HUD_X, HUD_Y);
-   private static boolean initialized;
+   private static boolean initialized = true;
    private static boolean lastEnabled;
    private static double lastDelay;
    private static int lastHudX;
@@ -133,6 +133,5 @@ public final class AutoReconnectSettings {
    static {
       loadFromDisk();
       snapshot();
-      initialized = true;
    }
 }

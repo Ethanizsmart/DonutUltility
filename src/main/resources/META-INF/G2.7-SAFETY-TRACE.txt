@@ -1,0 +1,11 @@
+G2.7 Safety + Trace
+- Event-based JSONL behavior logging under logs/donututility/
+- Logs phase transitions, inventory changes, RMB state, SeaSell state/commands/retries, Bounty, TPA, Home, Death/Sword Recovery, Reconnect, CoreV2, watchdogs and exceptions
+- BOOTSTRAP waits for first sword/event instead of forcing WAIT_OMI on an empty start
+- FarmCycle advances at most once per real client-tick window
+- LOOT_SETTLE counts 5 real client ticks rather than number of callers
+- Removed incorrect 2s WAIT_RETURN auto-store assumption
+- 2s timeout applies only post-SELL when sword is missing/not in hotbar
+- Detects sword/OMI/firework across full inventory; auto-use priority only when target is in hotbar
+- ERROR reason is retained/traced and self-recovers when sword returns
+- Watchdog records slow/stuck phases but does not blindly skip phases

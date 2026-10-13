@@ -77,12 +77,12 @@ public final class CompactSlashSellSettings {
       String[] var2 = var1.split("\\s*,\\s*|\\s+", -1);
       if (var2.length != 2) {
          return null;
-      } else {
-         try {
-            return new int[]{Integer.parseInt(var2[0].trim()), Integer.parseInt(var2[1].trim())};
-         } catch (NumberFormatException var4) {
-            return null;
-         }
+      }
+
+      try {
+         return new int[]{Integer.parseInt(var2[0].trim()), Integer.parseInt(var2[1].trim())};
+      } catch (NumberFormatException var4) {
+         return null;
       }
    }
 

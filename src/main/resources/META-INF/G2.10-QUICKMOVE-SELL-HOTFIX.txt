@@ -1,0 +1,5 @@
+G2.10 QuickMove Sell Hotfix
+- Replaces pickup/place production transfer with one QUICK_MOVE per action
+- Keeps HumanBehaviorProfile slot selection and per-stack delay/micro-pauses
+- Keeps Ominous/sword/protected item filter
+- Keeps G2.8 FarmCycle/Vex/Death/Home behavior unchanged

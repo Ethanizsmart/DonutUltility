@@ -1,0 +1,7 @@
+G2.9 Production Humanized Sell
+- MOVING_ITEMS production state delegates exclusively to HumanizedSellRuntime
+- CLICK_CONFIRM_DELAYED delegates to HumanizedSellRuntime.tickAfterConfirm
+- Humanized sell uses OminousSurplusSellPolicy.isProtectedForTransfer
+- Ominous surplus GUI preparation runs once per new sell handler
+- resetSellControl force-resets humanized transfer state
+- Vex/Death/Home/FarmCycle behavior unchanged

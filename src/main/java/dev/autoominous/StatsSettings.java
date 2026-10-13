@@ -18,7 +18,7 @@ public final class StatsSettings {
    public static final ConfigInteger HUD_X = new ConfigInteger("HUD X", 8, -10000, 10000, "Horizontal HUD position in pixels.");
    public static final ConfigInteger HUD_Y = new ConfigInteger("HUD Y", 8, -10000, 10000, "Vertical HUD position in pixels.");
    public static final List<IConfigBase> ALL_OPTIONS = List.of(AUTO_SELL_STATS, HUD_X, HUD_Y);
-   private static boolean initialized;
+   private static boolean initialized = true;
    private static boolean lastEnabled;
    private static int lastHudX;
    private static int lastHudY;
@@ -119,6 +119,5 @@ public final class StatsSettings {
    static {
       loadFromDisk();
       snapshot();
-      initialized = true;
    }
 }

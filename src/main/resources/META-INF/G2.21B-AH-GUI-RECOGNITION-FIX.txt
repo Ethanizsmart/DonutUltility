@@ -1,0 +1,6 @@
+G2.21b AH GUI Recognition Fix
+- Base: G2.21a AH diagnostic-only
+- Fixes WAIT_AH_GUI false timeout when Donut Auction screen title is unreadable through reflection.
+- Primary recognition remains Auction title.
+- Fallback is limited to active DeathSwordAhRecoveryRuntime state WAIT_AH_GUI and a large HandledScreen (>=45 server/container slots).
+- No changes to listing parser, max $1M rule, cheapest selection, confirm verification, sell, farm cycle, trapdoor/pot behavior.

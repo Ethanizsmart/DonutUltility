@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Properties;
-import java.util.concurrent.ThreadLocalRandom;
 
 public final class HomePositionGuardRuntime {
    private static final double HORIZONTAL_TOLERANCE = 0.3;
@@ -54,10 +53,9 @@ public final class HomePositionGuardRuntime {
    private HomePositionGuardRuntime() {
    }
 
-   public static void resetForMaster() { cancelTransitForHigherPriority("Master OFF", false); captureRequested = false; driftSinceMs = -1L; sawTpaBusy = false; tpaGraceUntilMs = 0L; pauseSwordRecovery = false; }
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) {  return; }
       ensureLoaded();
+      enforceSwordRecoveryBounds();
       invokeStaticVoid("dev.autoominous.DeathRecoverySettings", "maybePersist");
       long var0 = System.currentTimeMillis();
       Object var2 = getMinecraftClient();
@@ -88,7 +86,7 @@ public final class HomePositionGuardRuntime {
                }
             } else if (var0 >= guardCooldownUntilMs && !var5 && var0 >= tpaGraceUntilMs) {
                boolean var6 = isDeathRecoveryPending();
-               if (var6) {
+               if (var6 && !isSwordRecoveryPastHomeGate()) {
                   driftSinceMs = -1L;
                } else {
                   double[] var7 = position(var3);
@@ -104,7 +102,7 @@ public final class HomePositionGuardRuntime {
                         driftSinceMs = var0;
                         driftRequiredMs = random(400, 600);
                      } else if (var0 - driftSinceMs >= driftRequiredMs) {
-                        boolean var10 = SwordRecoveryRuntime.isRecoveryActive();
+                        boolean var10 = var6 && isSwordRecoveryPastHomeGate();
                         beginTransit(var2, var3, var4, HomePositionGuardRuntime.Transit.RETURN, var0, var10);
                         driftSinceMs = -1L;
                      }
@@ -130,11 +128,11 @@ public final class HomePositionGuardRuntime {
    }
 
    public static boolean isRecoveryPending() {
-      return isBlockingAutomation() || isDeathRecoveryPending() || SwordRecoveryRuntime.isRecoveryActive();
+      return isBlockingAutomation() || isDeathRecoveryPending();
    }
 
    public static boolean isAutoUseBlocked() {
-      return isBlockingAutomation() || isDeathRecoveryPending() || SwordRecoveryRuntime.isRecoveryActive();
+      return isBlockingAutomation() || isDeathRecoveryPending();
    }
 
    public static void cancelForVexDanger() {
@@ -145,12 +143,64 @@ public final class HomePositionGuardRuntime {
       cancelTransitForHigherPriority("Death Recovery", false);
    }
 
+   public static boolean enforceSwordRecoveryBounds() {
+      if (!isDeathRecoveryPending()) {
+         return false;
+      }
+
+      try {
+         Class var0 = Class.forName("dev.autoominous.SwordRecoveryRuntime");
+         String var1 = swordStateName();
+         long var2 = System.currentTimeMillis();
+         long var4 = declaredField(var0, "stateDeadlineMs").getLong(null);
+         if ("FREE_SPACE".equals(var1) && var4 > 0L && var2 >= var4) {
+            abortSwordRecovery("free-space timeout");
+            return true;
+         }
+      } catch (Throwable var6) {
+         System.err.println("[Auto Ominous] Sword Recovery bound check failed: " + var6.getMessage());
+      }
+
+      return false;
+   }
+
    public static boolean isBlockingSell() {
       return isBlockingAutomation() || invokeStaticBoolean("dev.autoominous.BountyRuntime", "isBlockingSell", false);
    }
 
    public static boolean shouldPauseSwordRecovery() {
       return transit != HomePositionGuardRuntime.Transit.NONE && pauseSwordRecovery;
+   }
+
+   public static int adjustSwordRecoverySearchResult(int var0) {
+      return isSwordRecoveryEnabled() ? var0 : 0;
+   }
+
+   public static void handleSwordRecoveryRetry(long var0) {
+      try {
+         if (!isSwordRecoveryEnabled()) {
+            abortSwordRecovery("disabled");
+            return;
+         }
+
+         Class var2 = Class.forName("dev.autoominous.SwordRecoveryRuntime");
+         Field var3 = declaredField(var2, "retries");
+         int var4 = var3.getInt(null) + 1;
+         if (var4 >= 3) {
+            abortSwordRecovery("3 attempts exhausted");
+            return;
+         }
+
+         var3.setInt(null, var4);
+         setSwordState("OPEN_ORDER");
+         declaredField(var2, "nextActionAtMs").setLong(null, var0 + random(400, 900));
+         declaredField(var2, "stateDeadlineMs").setLong(null, var0 + 6000L);
+         declaredField(var2, "allowAutoSell").setBoolean(null, false);
+         System.out.println("[Auto Ominous] Sword Recovery: retry " + var4 + "/2 before terminal abort.");
+      } catch (Throwable var5) {
+         System.err.println("[Auto Ominous] Sword Recovery retry gate failed: " + var5.getMessage());
+         abortSwordRecovery("retry gate error");
+      }
    }
 
    public static void injectGuiControls(Object var0) {
@@ -410,17 +460,16 @@ public final class HomePositionGuardRuntime {
 
    private static void resumeSwordRecoveryAfterGuard(long var0) {
       try {
-         if (!SwordRecoveryRuntime.isRecoveryActive()) {
+         if (!isDeathRecoveryPending()) {
             return;
          }
 
          String var2 = pausedSwordState;
          String var3;
-         if (!"WAIT_AUCTION".equals(var2) && !"SET_FILTER".equals(var2) && !"SCAN_AUCTION".equals(var2)
-            && !"WAIT_PURCHASE".equals(var2) && !"VERIFY_PURCHASE".equals(var2) && !"OPEN_AUCTION".equals(var2)) {
+         if (!"WAIT_ROOT".equals(var2) && !"WAIT_YOUR".equals(var2) && !"WAIT_EDIT".equals(var2) && !"WAIT_COLLECT".equals(var2) && !"OPEN_ORDER".equals(var2)) {
             var3 = "CHECK_LOCAL";
          } else {
-            var3 = "OPEN_AUCTION";
+            var3 = "OPEN_ORDER";
          }
 
          Class var4 = Class.forName("dev.autoominous.SwordRecoveryRuntime");
@@ -428,10 +477,32 @@ public final class HomePositionGuardRuntime {
          declaredField(var4, "nextActionAtMs").setLong(null, var0 + 300L);
          declaredField(var4, "stateDeadlineMs").setLong(null, var0 + 6000L);
          declaredField(var4, "allowAutoSell").setBoolean(null, false);
-         System.out.println("[Auto Ominous] Home Guard: resumed Auction Sword Recovery at " + var3 + ".");
+         System.out.println("[Auto Ominous] Home Guard: resumed Sword Recovery at " + var3 + " without resetting retry budget.");
       } catch (Throwable var5) {
          System.err.println("[Auto Ominous] Home Guard: resume Sword Recovery failed: " + var5.getMessage());
       }
+   }
+
+   private static void abortSwordRecovery(String var0) {
+      try {
+         Object var1 = getMinecraftClient();
+         Object var2 = var1 == null ? null : getField(var1, "field_1724");
+         if (var1 != null) {
+            closeHandledScreen(var1, var2);
+         }
+
+         invokeStaticVoid("dev.autoominous.ProtectedItemAutoUseRuntime", "forceRelease");
+         invokeStaticVoid("dev.autoominous.SlashSellRuntime", "resetRuntime");
+         System.err.println("[Auto Ominous] Sword Recovery: terminal abort (" + var0 + "); will not retry until a new death event.");
+         invokeStaticVoid("dev.autoominous.DeathRecoveryRuntime", "completeAfterSwordRecovery");
+         requestAutoUseRearm();
+      } catch (Throwable var3) {
+      }
+   }
+
+   private static boolean isSwordRecoveryPastHomeGate() {
+      String var0 = swordStateName();
+      return !var0.isEmpty() && !"WAIT_STABLE".equals(var0);
    }
 
    private static String swordStateName() {
@@ -456,11 +527,11 @@ public final class HomePositionGuardRuntime {
    private static boolean isOutsideAnchor(double var0, double var2, double var4, String var6) {
       if (!sameWorld(anchorWorld, var6)) {
          return true;
-      } else {
-         double var7 = var0 - anchorX;
-         double var9 = var4 - anchorZ;
-         return var7 * var7 + var9 * var9 > 0.09 || Math.abs(var2 - anchorY) > 1.0;
       }
+
+      double var7 = var0 - anchorX;
+      double var9 = var4 - anchorZ;
+      return var7 * var7 + var9 * var9 > 0.09 || Math.abs(var2 - anchorY) > 1.0;
    }
 
    private static boolean isInsideAnchor(double var0, double var2, double var4, String var6) {
@@ -580,34 +651,34 @@ public final class HomePositionGuardRuntime {
    private static double[] position(Object var0) {
       if (var0 == null) {
          return null;
-      } else {
-         try {
-            double var1 = ((Number)var0.getClass().getMethod("method_23317").invoke(var0)).doubleValue();
-            double var3 = ((Number)var0.getClass().getMethod("method_23318").invoke(var0)).doubleValue();
-            double var5 = ((Number)var0.getClass().getMethod("method_23321").invoke(var0)).doubleValue();
-            return new double[]{var1, var3, var5};
-         } catch (Throwable var7) {
-            return null;
-         }
+      }
+
+      try {
+         double var1 = ((Number)var0.getClass().getMethod("method_23317").invoke(var0)).doubleValue();
+         double var3 = ((Number)var0.getClass().getMethod("method_23318").invoke(var0)).doubleValue();
+         double var5 = ((Number)var0.getClass().getMethod("method_23321").invoke(var0)).doubleValue();
+         return new double[]{var1, var3, var5};
+      } catch (Throwable var7) {
+         return null;
       }
    }
 
    private static String worldKey(Object var0) {
       if (var0 == null) {
          return "";
-      } else {
-         for (String var4 : new String[]{"method_27983", "getRegistryKey"}) {
-            try {
-               Object var5 = var0.getClass().getMethod(var4).invoke(var0);
-               if (var5 != null) {
-                  return String.valueOf(var5);
-               }
-            } catch (Throwable var6) {
-            }
-         }
-
-         return var0.getClass().getName();
       }
+
+      for (String var4 : new String[]{"method_27983", "getRegistryKey"}) {
+         try {
+            Object var5 = var0.getClass().getMethod(var4).invoke(var0);
+            if (var5 != null) {
+               return String.valueOf(var5);
+            }
+         } catch (Throwable var6) {
+         }
+      }
+
+      return var0.getClass().getName();
    }
 
    private static void closeHandledScreen(Object var0, Object var1) {
@@ -624,7 +695,7 @@ public final class HomePositionGuardRuntime {
             Class var3 = Class.forName("net.minecraft.class_437");
 
             try {
-               var0.getClass().getMethod("method_1507", var3).invoke(var0, (Object)null);
+               var0.getClass().getMethod("method_1507", var3).invoke(var0, new Object[]{null});
             } catch (Throwable var5) {
             }
          }
@@ -635,12 +706,12 @@ public final class HomePositionGuardRuntime {
    private static Object getField(Object var0, String var1) {
       if (var0 == null) {
          return null;
-      } else {
-         try {
-            return declaredField(var0.getClass(), var1).get(var0);
-         } catch (Throwable var3) {
-            return null;
-         }
+      }
+
+      try {
+         return declaredField(var0.getClass(), var1).get(var0);
+      } catch (Throwable var3) {
+         return null;
       }
    }
 
@@ -712,19 +783,19 @@ public final class HomePositionGuardRuntime {
    private static String normalizeCommand(String var0) {
       if (var0 == null) {
          return "";
-      } else {
-         String var1 = var0.trim();
-
-         while (var1.startsWith("/")) {
-            var1 = var1.substring(1).trim();
-         }
-
-         return var1;
       }
+
+      String var1 = var0.trim();
+
+      while (var1.startsWith("/")) {
+         var1 = var1.substring(1).trim();
+      }
+
+      return var1;
    }
 
    private static int random(int var0, int var1) {
-      return ThreadLocalRandom.current().nextInt(var0, var1 + 1);
+      return HumanBehaviorProfile.homeGuardRandom(var0, var1);
    }
 
    private static double parseDouble(String var0, double var1) {
@@ -754,7 +825,7 @@ public final class HomePositionGuardRuntime {
       }
    }
 
-   private static enum Transit {
+   private enum Transit {
       NONE,
       CAPTURE,
       RETURN;

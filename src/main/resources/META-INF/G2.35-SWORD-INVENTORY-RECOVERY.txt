@@ -1,0 +1,1 @@
+G2.35: bounded sword inventory-to-hotbar SWAP recovery in MACHINE_RUNNING, WAIT_RETURN, LOOT_SETTLE, SELL, VERIFY_SWORD and ERROR; fail closed on no safe hotbar slot, 3 unsuccessful SWAP attempts; no AH modifications.

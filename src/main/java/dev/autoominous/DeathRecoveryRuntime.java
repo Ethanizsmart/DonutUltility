@@ -32,7 +32,6 @@ public final class DeathRecoveryRuntime {
    }
 
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) {  return; }
       invokeStaticVoid("dev.autoominous.DeathRecoverySettings", "maybePersist");
       if (!invokeStaticBoolean("dev.autoominous.DeathRecoverySettings", "isEnabled", false)) {
          clearState();
@@ -81,7 +80,7 @@ public final class DeathRecoveryRuntime {
                   net.minecraft.class_310 client = (net.minecraft.class_310)var0;
                   if (var1 != postDeathSellPlayer
                      || client.method_1562() != postDeathSellConnection
-                     || com.seastore.auto.seaats.client.AutoSellLogic.isInventorySellComplete(client)) {
+                     || RecoverySellBridge.isComplete(client)) {
                      clearState();
                      System.out.println("[Auto Ominous] Death Recovery: post-respawn sell finished; resuming automation.");
                   }
@@ -126,6 +125,7 @@ public final class DeathRecoveryRuntime {
    private static void beginRecovery(long var0) {
       HomePositionGuardRuntime.cancelForDeathRecovery();
       SwordRecoveryRuntime.forceReset();
+      G232SafeRuntime.resetForDeathRecovery();
       postDeathSellPending = false;
       postDeathSellPlayer = null;
       postDeathSellConnection = null;
@@ -286,5 +286,19 @@ public final class DeathRecoveryRuntime {
 
    public static void resetForVexDeathWait() {
       clearState();
+   }
+
+   // Compatibility for CoreV2's session-reset and recovery watchdog callers.
+   public static void completeAfterSwordRecovery() {
+      clearState();
+   }
+
+   public static void retryHomeCommand() {
+      postDeathSellPending = false;
+      postDeathSellPlayer = null;
+      postDeathSellConnection = null;
+      homeCommandSent = false;
+      homeCommandSentAtMs = -1L;
+      worldReadyAtMs = -1L;
    }
 }

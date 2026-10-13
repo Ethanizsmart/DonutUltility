@@ -1,0 +1,1 @@
+G2.21d diagnostic-only: per-slot AH scanner trace. No purchase logic changes.

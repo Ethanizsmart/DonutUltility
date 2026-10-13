@@ -1,0 +1,5 @@
+G2.28 AH PRECLICK ATOMIC GUARD
+- Move AH listing race validation out of WAIT_CONFIRM.
+- Revalidate exact selected slot/item/Looting III/price immediately inside clickHandledSlot before click packet.
+- WAIT_CONFIRM no longer reads stale Auction slot state after DialogScreen replaces the handled screen.
+- MultiActionDialog confirm executes only an exact canonical Yes action; no order/coordinate fallback.

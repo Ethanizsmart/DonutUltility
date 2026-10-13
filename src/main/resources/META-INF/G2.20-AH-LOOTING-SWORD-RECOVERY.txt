@@ -1,0 +1,9 @@
+G2.20 MERGED AH LOOTING SWORD RECOVERY
+- Based on the user's current G2.19 Profit Color branch.
+- Preserves SafetyReconnectBridge, HudEnhancementBridge/BountyStatsBridge, and Profit color patch.
+- After death -> respawn -> /home stable -> wait 5s.
+- If no Looting III Diamond Sword is present, use the donor AH recovery flow.
+- If inventory was full, sell sellable items first to create space.
+- Open /ah sword looting 3, select the cheapest Looting III Diamond Sword <= $1,000,000.
+- Re-verify confirmation item/price before Yes and verify the purchased sword appears in inventory.
+- Retry every 5s when the AH flow cannot complete.

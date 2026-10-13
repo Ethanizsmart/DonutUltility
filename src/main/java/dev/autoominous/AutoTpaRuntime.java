@@ -26,7 +26,6 @@ public final class AutoTpaRuntime {
    }
 
    public static void onGameMessageObject(Object var0) {
-      if (!MasterAutomation.isEnabled()) return;
       if (var0 != null) {
          String var1 = extractPlainText(var0);
          if (var1 != null) {
@@ -38,29 +37,28 @@ public final class AutoTpaRuntime {
    private static String extractPlainText(Object var0) {
       if (var0 == null) {
          return null;
-      } else {
-         try {
-            Method var1 = var0.getClass().getMethod("getString");
-            if (var1.invoke(var0) instanceof String var8) {
-               return var8;
-            }
-         } catch (Throwable var5) {
-         }
-
-         try {
-            Method var6 = var0.getClass().getMethod("method_10858", int.class);
-            if (var6.invoke(var0, 32767) instanceof String var3) {
-               return var3;
-            }
-         } catch (Throwable var4) {
-         }
-
-         return null;
       }
+
+      try {
+         Method var1 = var0.getClass().getMethod("getString");
+         if (var1.invoke(var0) instanceof String var8) {
+            return var8;
+         }
+      } catch (Throwable var5) {
+      }
+
+      try {
+         Method var6 = var0.getClass().getMethod("method_10858", int.class);
+         if (var6.invoke(var0, 32767) instanceof String var3) {
+            return var3;
+         }
+      } catch (Throwable var4) {
+      }
+
+      return null;
    }
 
    public static void onGameMessage(String var0) {
-      if (!MasterAutomation.isEnabled()) return;
       if (AutoTpaSettings.isEnabled() && var0 != null && !var0.isBlank()) {
          Matcher var1 = TELEPORT_HERE.matcher(var0.replace('\r', '\n'));
 
@@ -85,45 +83,44 @@ public final class AutoTpaRuntime {
       }
    }
 
-   public static void resetForMaster() { clearAll(); }
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) { clearAll(); return; }
-      AutoTpaSettings.maybePersist();
-      if (DeathRecoveryRuntime.isPostDeathSellPending()) return;
-      if (!VexSafetyRuntime.allowAutoTpa(AutoTpaSettings.isEnabled())) {
-         clearAll();
-      } else {
-         long var0 = System.currentTimeMillis();
-         if (awaitingConfirm) {
-            if (tryConfirmGui()) {
-               System.out.println("[Auto Ominous] Auto TPA GUI confirmed for " + pendingUser);
-               clearAll();
-            } else {
-               if (confirmDeadlineMillis > 0L && var0 > confirmDeadlineMillis) {
-                  System.err.println("[Auto Ominous] Auto TPA confirm GUI timed out for " + pendingUser);
+      if (awaitingConfirm || !FarmCycleRuntime.isCycleBlockingAuxiliaryActions()) {
+         AutoTpaSettings.maybePersist();
+         if (!VexSafetyRuntime.allowAutoTpa(AutoTpaSettings.isEnabled())) {
+            clearAll();
+         } else {
+            long var0 = System.currentTimeMillis();
+            if (awaitingConfirm) {
+               if (tryConfirmGui()) {
+                  System.out.println("[Auto Ominous] Auto TPA GUI confirmed for " + pendingUser);
+                  clearAll();
+               } else {
+                  if (confirmDeadlineMillis > 0L && var0 > confirmDeadlineMillis) {
+                     System.err.println("[Auto Ominous] Auto TPA confirm GUI timed out for " + pendingUser);
+                     clearAll();
+                  }
+               }
+            } else if (pendingAtMillis >= 0L && var0 >= pendingAtMillis) {
+               try {
+                  class_310 var2 = class_310.method_1551();
+                  if (var2 == null) {
+                     return;
+                  }
+
+                  class_634 var3 = var2.method_1562();
+                  if (var3 == null) {
+                     return;
+                  }
+
+                  var3.method_45730("tpaccept");
+                  pendingAtMillis = -1L;
+                  awaitingConfirm = true;
+                  confirmDeadlineMillis = var0 + 8000L;
+                  System.out.println("[Auto Ominous] Auto TPA sent /tpaccept for " + pendingUser + "; waiting for Confirm GUI");
+               } catch (Throwable var4) {
+                  System.err.println("[Auto Ominous] Auto TPA /tpaccept failed: " + var4.getMessage());
                   clearAll();
                }
-            }
-         } else if (pendingAtMillis >= 0L && var0 >= pendingAtMillis) {
-            try {
-               class_310 var2 = class_310.method_1551();
-               if (var2 == null) {
-                  return;
-               }
-
-               class_634 var3 = var2.method_1562();
-               if (var3 == null) {
-                  return;
-               }
-
-               var3.method_45730("tpaccept");
-               pendingAtMillis = -1L;
-               awaitingConfirm = true;
-               confirmDeadlineMillis = var0 + 8000L;
-               System.out.println("[Auto Ominous] Auto TPA sent /tpaccept for " + pendingUser + "; waiting for Confirm GUI");
-            } catch (Throwable var4) {
-               System.err.println("[Auto Ominous] Auto TPA /tpaccept failed: " + var4.getMessage());
-               clearAll();
             }
          }
       }

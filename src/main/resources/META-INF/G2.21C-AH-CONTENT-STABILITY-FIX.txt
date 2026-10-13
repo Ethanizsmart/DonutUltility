@@ -1,0 +1,6 @@
+G2.21c AH Content Stability Fix
+- WAIT_AH_GUI does not scan until handled AH server slots contain items and remain populated for >=500ms.
+- A null listing scan no longer closes AH immediately.
+- Rescans the same AH GUI every 250ms for up to 2s from first non-empty content.
+- Only after the rescan window expires does existing close/retry behavior run.
+- No FarmCycle, trapdoor/pot, sell, Vex, death timing, price ceiling, listing choice, or confirm logic changed.

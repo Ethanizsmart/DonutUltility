@@ -1,0 +1,4 @@
+G2.11 One Stack QuickMove Fix
+- Removed client-side findEmptySellSlot gate from production sell.
+- Uses one proven QUICK_MOVE action per humanized interval.
+- Keeps original protected-item/Ominous surplus policy and all non-sell runtime classes unchanged.

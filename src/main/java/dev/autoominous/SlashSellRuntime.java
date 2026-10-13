@@ -14,76 +14,65 @@ public final class SlashSellRuntime {
    }
 
    public static void onTick() {
-      boolean prioritySell = DeathRecoveryRuntime.isPostDeathSellPending();
-      try {
-         tickSell(prioritySell);
-      } finally {
-         // The one-off recovery sale must not enable the user's regular Auto /sell toggle.
-         if (prioritySell && !SlashSellSettings.isEnabled()) {
-            setSeaBoolean("isAutoSellEnabled", false);
-         }
-      }
-   }
+      if (!G232SafeRuntime.isSwordRecoverySuspended()) {
+         invokeStaticVoid("dev.autoominous.SlashSellSettings", "maybePersist");
+         syncSeaConfig();
+         boolean var0 = invokeStaticBoolean("dev.autoominous.SlashSellSettings", "isEnabled", false);
+         if (initialized && var0 == previousEnabled) {
+            setSeaBoolean("isAutoSellEnabled", var0);
+         } else {
+            resetRuntime();
+            setSeaBoolean("isAutoSellEnabled", var0);
+            if (var0) {
+               long var1 = System.currentTimeMillis();
+               setSeaLong("startTimeMs", var1);
+               setSeaInt("totalSellCount", 0);
+               setSeaDouble("totalMoney", 0.0);
+               setSeaLong("lastMoneyReceivedMs", var1);
+            }
 
-   private static void tickSell(boolean prioritySell) {
-      if (!MasterAutomation.isEnabled()) {  return; }
-      invokeStaticVoid("dev.autoominous.SlashSellSettings", "maybePersist");
-      syncSeaConfig();
-      boolean var0 = invokeStaticBoolean("dev.autoominous.SlashSellSettings", "isEnabled", false);
-      if (initialized && var0 == previousEnabled) {
-         setSeaBoolean("isAutoSellEnabled", var0);
-      } else {
-         resetRuntime();
-         setSeaBoolean("isAutoSellEnabled", var0);
-         if (var0) {
-            long var1 = System.currentTimeMillis();
-            setSeaLong("startTimeMs", var1);
-            setSeaInt("totalSellCount", 0);
-            setSeaDouble("totalMoney", 0.0);
-            setSeaLong("lastMoneyReceivedMs", var1);
+            previousEnabled = var0;
+            initialized = true;
          }
 
-         previousEnabled = var0;
-         initialized = true;
-      }
-
-      if (!var0 && !prioritySell) {
-         recoverySuspended = false;
-      } else {
-         Object var8 = getMinecraftClient();
-         if (var8 != null) {
-            boolean var2 = invokeStaticBoolean("dev.autoominous.SwordRecoveryRuntime", "isRecoveryBlockingAutoSell", false);
-            boolean var3 = isCurrentPlayerDead(var8);
-            if (!var2 && !var3) {
-               if (recoverySuspended) {
-                  resetRuntime();
-                  recoverySuspended = false;
-               }
-
-               setSeaBoolean("isAutoSellEnabled", prioritySell || HumanizedSellRuntime.shouldEnableSeaAutoSell());
-
-               try {
-                  Object var4 = getDeclaredField(var8.getClass(), var8, "field_1755");
-                  if (var4 != null && "dev.autoominous.gui.AutoOminousGuiConfigs".equals(var4.getClass().getName())) {
-                     return;
+         if (!var0) {
+            recoverySuspended = false;
+         } else {
+            Object var8 = getMinecraftClient();
+            if (var8 != null) {
+               boolean var2 = invokeStaticBoolean("dev.autoominous.SwordRecoveryRuntime", "isRecoveryBlockingAutoSell", false);
+               boolean var3 = isCurrentPlayerDead(var8);
+               if (!var2 && !var3) {
+                  if (recoverySuspended) {
+                     resetRuntime();
+                     recoverySuspended = false;
                   }
 
-                  Class var5 = Class.forName("com.seastore.auto.seaats.client.AutoSellLogic");
-                  Method var6 = findSingleArgMethod(var5, "tick");
-                  if (var6 != null) {
-                     var6.invoke(null, var8);
-                  }
-               } catch (Throwable var7) {
-               }
-            } else {
-               if (!recoverySuspended) {
-                  resetRuntime();
-                  recoverySuspended = true;
-               }
+                  setSeaBoolean("isAutoSellEnabled", HumanizedSellRuntime.shouldEnableSeaAutoSell());
 
-               setSeaBoolean("isAutoSellEnabled", false);
-               if (var3) {
-                  closeHandledScreenIfPresent(var8);
+                  try {
+                     Object var4 = getDeclaredField(var8.getClass(), var8, "field_1755");
+                     if (var4 != null && "dev.autoominous.gui.AutoOminousGuiConfigs".equals(var4.getClass().getName())) {
+                        return;
+                     }
+
+                     Class var5 = Class.forName("com.seastore.auto.seaats.client.AutoSellLogic");
+                     Method var6 = findSingleArgMethod(var5, "tick");
+                     if (var6 != null) {
+                        var6.invoke(null, var8);
+                     }
+                  } catch (Throwable var7) {
+                  }
+               } else {
+                  if (!recoverySuspended) {
+                     resetRuntime();
+                     recoverySuspended = true;
+                  }
+
+                  setSeaBoolean("isAutoSellEnabled", false);
+                  if (var3) {
+                     closeHandledScreenIfPresent(var8);
+                  }
                }
             }
          }
@@ -120,13 +109,13 @@ public final class SlashSellRuntime {
       Object var1 = getDeclaredField(var0.getClass(), var0, "field_1724");
       if (var1 == null) {
          return false;
-      } else {
-         try {
-            Object var2 = var1.getClass().getMethod("method_29504").invoke(var1);
-            return var2 instanceof Boolean && (Boolean)var2;
-         } catch (Throwable var3) {
-            return false;
-         }
+      }
+
+      try {
+         Object var2 = var1.getClass().getMethod("method_29504").invoke(var1);
+         return var2 instanceof Boolean && (Boolean)var2;
+      } catch (Throwable var3) {
+         return false;
       }
    }
 
@@ -146,7 +135,7 @@ public final class SlashSellRuntime {
          }
 
          Class var3 = Class.forName("net.minecraft.class_437");
-         var0.getClass().getMethod("method_1507", var3).invoke(var0, (Object)null);
+         var0.getClass().getMethod("method_1507", var3).invoke(var0, new Object[]{null});
       } catch (Throwable var5) {
       }
    }

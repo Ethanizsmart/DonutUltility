@@ -1,0 +1,7 @@
+G2.18 SAFETY RECONNECT + HUD CLEANUP + BOUNTY TOTAL
+- Foreign-player safety disconnect now pauses Auto Reconnect for the current safety disconnect.
+- Auto Reconnect remains configured ON but is suppressed until the user manually reconnects; it then resumes for future network/time-out disconnects.
+- Auto Reconnect HUD shows PAUSED while the safety interlock is active.
+- Stats HUD no longer fakes bold by drawing text twice with a 1px offset; uses normal vanilla font rendering.
+- Bounty HUD adds target, cumulative confirmed bounty total, last confirmed bounty, and colored status/countdown.
+- Bounty total increments only from confirmed server SUCCESS messages.

@@ -32,7 +32,8 @@ public final class DisconnectRuntime {
    }
 
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) {  return; }
+      AutoReconnectRuntime.onTick();
+      CoreV2RuntimeBridge.onClientTick();
       BountyRecoveryBridge.onTick();
       if (DisconnectSettings.isEnabled()) {
          class_310 var0 = class_310.method_1551();
@@ -46,6 +47,7 @@ public final class DisconnectRuntime {
                   disconnectTriggered = false;
                   sawDisconnectedState = false;
                   scanTickCounter = 0;
+                  SafetyReconnectBridge.clearAfterManualReconnect();
                }
             } else if (var1 != null && var2 != null) {
                if (++scanTickCounter >= 10) {
@@ -68,6 +70,7 @@ public final class DisconnectRuntime {
                                     lastDetectedPlayer = var10;
                                     lastDetectedDistance = var12;
                                     DisconnectSettings.recordDetection(var10, var12);
+                                    SafetyReconnectBridge.pauseForForeignPlayer();
                                     String var14 = String.format(Locale.ROOT, "Auto Disconnect: %s detected at %.1f blocks (radius %.1f)", var10, var12, var4);
                                     class_634 var15 = var0.method_1562();
                                     if (var15 != null) {
@@ -96,5 +99,6 @@ public final class DisconnectRuntime {
       lastDetectedPlayer = null;
       lastDetectedDistance = -1.0;
       scanTickCounter = 0;
+      SafetyReconnectBridge.clearAfterManualReconnect();
    }
 }

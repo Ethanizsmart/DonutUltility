@@ -1,0 +1,4 @@
+G2.21A AH diagnostic-only patch.
+No AH purchase behavior changes.
+Logs [AH-DIAG] checkpoints for state, listing scan, listing click, confirm text, Yes press, retry, and sword observation.
+Pot/trapdoor behavior unchanged.

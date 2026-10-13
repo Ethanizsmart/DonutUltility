@@ -22,15 +22,7 @@ public final class VexSafetyRuntime {
    private VexSafetyRuntime() {
    }
 
-   public static void resetForMaster() {
-      lastVexSeenAtMs = -1L; vexPresent = false; vexCount = 0;
-      deathWaitActive = false; deathWaitSatisfied = false; zeroSinceMs = -1L;
-      consecutiveSuccessfulZeroScans = 0; resetIssuedForCurrentDeath = false;
-      lastScanSuccessful = false; lastLoggedPresent = false; scanFailureLogged = false;
-   }
-
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) {  return; }
       scanVexNow();
    }
 
@@ -56,52 +48,60 @@ public final class VexSafetyRuntime {
          consecutiveSuccessfulZeroScans = 0;
          resetIssuedForCurrentDeath = false;
          return false;
-      } else if (deathWaitSatisfied) {
-         return true;
-      } else {
-         if (!deathWaitActive) {
-            boolean var4 = vexPresent || lastVexSeenAtMs >= 0L && var2 - lastVexSeenAtMs <= 3000L;
-            if (!var4) {
-               return true;
-            }
-
-            deathWaitActive = true;
-            zeroSinceMs = -1L;
-            consecutiveSuccessfulZeroScans = 0;
-            if (!resetIssuedForCurrentDeath) {
-               resetIssuedForCurrentDeath = true;
-               resetExistingDeathRecovery();
-            }
-
-            System.out.println("[Auto Ominous] Vex Safety: death while Vex danger armed; holding Death Screen until Vex clears.");
-         }
-
-         if (!var1) {
-            zeroSinceMs = -1L;
-            consecutiveSuccessfulZeroScans = 0;
-            return false;
-         } else if (vexPresent) {
-            zeroSinceMs = -1L;
-            consecutiveSuccessfulZeroScans = 0;
-            return false;
-         } else if (zeroSinceMs < 0L) {
-            zeroSinceMs = var2;
-            consecutiveSuccessfulZeroScans = 1;
-            return false;
-         } else {
-            consecutiveSuccessfulZeroScans++;
-            if (consecutiveSuccessfulZeroScans < 5) {
-               return false;
-            } else if (var2 - zeroSinceMs < 1000L) {
-               return false;
-            } else {
-               deathWaitActive = false;
-               deathWaitSatisfied = true;
-               System.out.println("[Auto Ominous] Vex Safety: Vex absence confirmed by successful scans for 1000ms; releasing Death Recovery.");
-               return true;
-            }
-         }
       }
+
+      if (deathWaitSatisfied) {
+         return true;
+      }
+
+      if (!deathWaitActive) {
+         boolean var4 = vexPresent || lastVexSeenAtMs >= 0L && var2 - lastVexSeenAtMs <= 3000L;
+         if (!var4) {
+            return true;
+         }
+
+         deathWaitActive = true;
+         zeroSinceMs = -1L;
+         consecutiveSuccessfulZeroScans = 0;
+         if (!resetIssuedForCurrentDeath) {
+            resetIssuedForCurrentDeath = true;
+            resetExistingDeathRecovery();
+         }
+
+         System.out.println("[Auto Ominous] Vex Safety: death while Vex danger armed; holding Death Screen until Vex clears.");
+      }
+
+      if (!var1) {
+         zeroSinceMs = -1L;
+         consecutiveSuccessfulZeroScans = 0;
+         return false;
+      }
+
+      if (vexPresent) {
+         zeroSinceMs = -1L;
+         consecutiveSuccessfulZeroScans = 0;
+         return false;
+      }
+
+      if (zeroSinceMs < 0L) {
+         zeroSinceMs = var2;
+         consecutiveSuccessfulZeroScans = 1;
+         return false;
+      }
+
+      consecutiveSuccessfulZeroScans++;
+      if (consecutiveSuccessfulZeroScans < 5) {
+         return false;
+      }
+
+      if (var2 - zeroSinceMs < 1000L) {
+         return false;
+      }
+
+      deathWaitActive = false;
+      deathWaitSatisfied = true;
+      System.out.println("[Auto Ominous] Vex Safety: Vex absence confirmed by successful scans for 1000ms; releasing Death Recovery.");
+      return true;
    }
 
    public static boolean isDangerArmed() {
@@ -217,22 +217,22 @@ public final class VexSafetyRuntime {
    private static Object getField(Object var0, String var1) {
       if (var0 == null) {
          return null;
-      } else {
-         Class var2 = var0.getClass();
-
-         while (var2 != null) {
-            try {
-               Field var3 = var2.getDeclaredField(var1);
-               var3.setAccessible(true);
-               return var3.get(var0);
-            } catch (NoSuchFieldException var4) {
-               var2 = var2.getSuperclass();
-            } catch (Throwable var5) {
-               return null;
-            }
-         }
-
-         return null;
       }
+
+      Class var2 = var0.getClass();
+
+      while (var2 != null) {
+         try {
+            Field var3 = var2.getDeclaredField(var1);
+            var3.setAccessible(true);
+            return var3.get(var0);
+         } catch (NoSuchFieldException var4) {
+            var2 = var2.getSuperclass();
+         } catch (Throwable var5) {
+            return null;
+         }
+      }
+
+      return null;
    }
 }

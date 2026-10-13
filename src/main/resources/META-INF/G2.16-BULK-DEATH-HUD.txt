@@ -1,0 +1,7 @@
+G2.16 Bulk Group + Death Recovery No-Order + Death HUD
+- sell: if >=2 sellable stacks of same item, transfer whole same-item group then wait 3-5 ticks and rescan
+- protected stacks checked individually through OminousSurplusSellPolicy
+- death recovery: after stable /home, missing local sword completes recovery without FREE_SPACE or /order
+- Vex Safety/respawn authority unchanged
+- death HUD: DEAD mm:ss + VEX count/? + WAIT while death screen/player dead
+- HUD reserves +22px during death overlay to avoid Stats/Reconnect/Bounty overlap

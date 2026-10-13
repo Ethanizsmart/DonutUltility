@@ -1,0 +1,14 @@
+G2.22 AH FULL FLOW FIX
+Baseline: G2.21e
+Scope:
+- Normalize Donut 1.21.11 structured lore Text trees to plain prices ($200K, $250K, $899K, $1.0M, etc.)
+- Preserve cheapest Looting III Diamond Sword <= $1,000,000 selection
+- Confirm screen reads actual server-provided sword price; no synthetic expected-price injection
+- Exact Yes widget preferred; handled-slot fallback retained
+- Screen close synchronized with server via ClientPlayerEntity.closeHandledScreen (intermediary method_7346) before retries
+- Death/Vex/Player Safety/Sell/FarmCycle/trapdoor-pot behavior unchanged
+Validation:
+- Offline cheapest selection: PASS ($200K chosen over $250K/$899K/$1.1M)
+- Confirm mismatch detection: PASS (actual $250K remains $250K vs expected $200K)
+- Exact Yes click: PASS
+- Server-synchronized close: PASS

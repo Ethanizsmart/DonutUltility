@@ -24,7 +24,7 @@ public class ModConfig {
          try (FileReader var0 = new FileReader(CONFIG_PATH.toFile())) {
             ModConfig.ConfigData var1 = (ModConfig.ConfigData)GSON.fromJson(var0, ModConfig.ConfigData.class);
             applyData(var1);
-         } catch (RuntimeException | IOException var5) {
+         } catch (IOException | RuntimeException var5) {
             var5.printStackTrace();
          }
       } else {
@@ -90,7 +90,7 @@ public class ModConfig {
          Config.profitIntervalMinutes = var0.profitIntervalMinutes;
          Config.noSellIntervalMinutes = var0.noSellIntervalMinutes;
          Config.discordId = var0.discordId;
-         Config.friendList = (List<String>)(var0.friendList != null ? var0.friendList : new ArrayList<>());
+         Config.friendList = var0.friendList != null ? var0.friendList : new ArrayList<>();
       }
    }
 

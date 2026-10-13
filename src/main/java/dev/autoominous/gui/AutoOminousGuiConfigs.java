@@ -9,6 +9,7 @@ import dev.autoominous.CompactSlashSellSettings;
 import dev.autoominous.DeathRecoverySettings;
 import dev.autoominous.DisconnectSettings;
 import dev.autoominous.HomePositionGuardRuntime;
+import dev.autoominous.MissingSwordWatchdogSettings;
 import dev.autoominous.StatsRuntime;
 import dev.autoominous.StatsSettings;
 import fi.dy.masa.malilib.config.IConfigBase;
@@ -45,14 +46,20 @@ public final class AutoOminousGuiConfigs extends GuiConfigsBase {
             this.initGui();
          });
       } else if (currentTab == AutoOminousGuiConfigs.Tab.DEATH_RECOVERY) {
-         String var1 = DeathRecoverySettings.isHomeSelected(1) ? "§2✓" : "";
-         String var2 = DeathRecoverySettings.isHomeSelected(2) ? "§2✓" : "";
-         this.addButton(new ButtonGeneric(590, 159, 28, 20, var1, new String[0]), (var1x, var2x) -> {
+         String var1 = MissingSwordWatchdogSettings.isEnabled() ? "§aAuto Buy Sword (5s): ON" : "§cAuto Buy Sword (5s): OFF";
+         this.addButton(new ButtonGeneric(10, 48, 290, 20, var1, new String[0]), (var1x, var2x) -> {
+            MissingSwordWatchdogSettings.toggleFromGui();
+            this.reCreateListWidget();
+            this.initGui();
+         });
+         String var2 = DeathRecoverySettings.isHomeSelected(1) ? "§2✓" : "";
+         String var3 = DeathRecoverySettings.isHomeSelected(2) ? "§2✓" : "";
+         this.addButton(new ButtonGeneric(590, 159, 28, 20, var2, new String[0]), (var1x, var2x) -> {
             DeathRecoverySettings.selectHome(1);
             this.reCreateListWidget();
             this.initGui();
          });
-         this.addButton(new ButtonGeneric(590, 181, 28, 20, var2, new String[0]), (var1x, var2x) -> {
+         this.addButton(new ButtonGeneric(590, 181, 28, 20, var3, new String[0]), (var1x, var2x) -> {
             DeathRecoverySettings.selectHome(2);
             this.reCreateListWidget();
             this.initGui();
@@ -98,12 +105,12 @@ public final class AutoOminousGuiConfigs extends GuiConfigsBase {
       List var1 = switch (currentTab) {
          case TPA -> AutoTpaSettings.ALL_OPTIONS;
          case DISCONNECT -> merged(DisconnectSettings.ALL_OPTIONS, AutoReconnectSettings.ALL_OPTIONS);
-         case DEATH_RECOVERY -> DeathRecoverySettings.ALL_OPTIONS;
+         case DEATH_RECOVERY -> MissingSwordWatchdogSettings.getDeathRecoveryGuiOptions();
          case SLASH_SELL -> CompactSlashSellSettings.getGuiOptions();
          case STATS -> StatsSettings.ALL_OPTIONS;
          case BOUNTY -> merged(BountySettings.ALL_OPTIONS, BountyHudSettings.ALL_OPTIONS);
       };
-      return ConfigOptionWrapper.createFor(merged(List.of(dev.autoominous.AutoOminousSettings.MASTER_TOGGLE), var1));
+      return ConfigOptionWrapper.createFor(var1);
    }
 
    private static List<IConfigBase> merged(List<? extends IConfigBase> var0, List<? extends IConfigBase> var1) {
@@ -113,7 +120,7 @@ public final class AutoOminousGuiConfigs extends GuiConfigsBase {
       return var2;
    }
 
-   public static enum Tab {
+   public enum Tab {
       TPA,
       DISCONNECT,
       DEATH_RECOVERY,

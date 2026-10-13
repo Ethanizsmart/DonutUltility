@@ -1,0 +1,1 @@
+G2.25: custom/server-driven DialogScreen confirmation support. No exact ConfirmationDialog class requirement; warningButton excluded; exact purchase-confirm context + two-action YES targeting.

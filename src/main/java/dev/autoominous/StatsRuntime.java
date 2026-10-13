@@ -68,8 +68,7 @@ public final class StatsRuntime {
                         var6 = Double.parseDouble(var8);
                         String var9 = var5.group(2);
                         if (var9 != null) {
-                           String var10 = var9.toUpperCase(Locale.ROOT);
-                           switch (var10) {
+                           switch (var9.toUpperCase(Locale.ROOT)) {
                               case "K":
                                  var6 *= 1000.0;
                                  break;
@@ -134,11 +133,13 @@ public final class StatsRuntime {
    }
 
    public static String getProfitText() {
-      return "Profit: " + formatCurrency(totalEarned);
+      String var0 = formatCurrency(totalEarned);
+      return "§fProfit: §a".concat(var0);
    }
 
    public static String getProfitPerHourText() {
-      return "Profit/h: " + formatCurrency(getEarnedPerHour());
+      String var0 = formatCurrency(getEarnedPerHour());
+      return "§fProfit/h: §a".concat(var0);
    }
 
    public static String getTimeText() {
@@ -178,13 +179,13 @@ public final class StatsRuntime {
          Object var2 = var1.invoke(null);
          if (var2 == null) {
             return false;
-         } else {
-            Field var3 = var0.getDeclaredField("field_1724");
-            Field var4 = var0.getDeclaredField("field_1687");
-            var3.setAccessible(true);
-            var4.setAccessible(true);
-            return var3.get(var2) != null && var4.get(var2) != null;
          }
+
+         Field var3 = var0.getDeclaredField("field_1724");
+         Field var4 = var0.getDeclaredField("field_1687");
+         var3.setAccessible(true);
+         var4.setAccessible(true);
+         return var3.get(var2) != null && var4.get(var2) != null;
       } catch (Throwable var5) {
          return false;
       }
@@ -193,35 +194,37 @@ public final class StatsRuntime {
    private static String extractPlainText(Object var0) {
       if (var0 == null) {
          return null;
-      } else if (var0 instanceof String) {
-         return (String)var0;
-      } else {
-         try {
-            Object var1 = var0.getClass().getMethod("getString").invoke(var0);
-            if (var1 instanceof String) {
-               return (String)var1;
-            }
-         } catch (Throwable var4) {
-         }
-
-         try {
-            Object var5 = var0.getClass().getMethod("method_10858", int.class).invoke(var0, 32767);
-            if (var5 instanceof String) {
-               return (String)var5;
-            }
-         } catch (Throwable var3) {
-         }
-
-         try {
-            Object var6 = var0.getClass().getMethod("method_54160").invoke(var0);
-            if (var6 instanceof String) {
-               return (String)var6;
-            }
-         } catch (Throwable var2) {
-         }
-
-         return null;
       }
+
+      if (var0 instanceof String) {
+         return (String)var0;
+      }
+
+      try {
+         Object var1 = var0.getClass().getMethod("getString").invoke(var0);
+         if (var1 instanceof String) {
+            return (String)var1;
+         }
+      } catch (Throwable var4) {
+      }
+
+      try {
+         Object var5 = var0.getClass().getMethod("method_10858", int.class).invoke(var0, 32767);
+         if (var5 instanceof String) {
+            return (String)var5;
+         }
+      } catch (Throwable var3) {
+      }
+
+      try {
+         Object var6 = var0.getClass().getMethod("method_54160").invoke(var0);
+         if (var6 instanceof String) {
+            return (String)var6;
+         }
+      } catch (Throwable var2) {
+      }
+
+      return null;
    }
 
    public static double getEarnedPerHour() {

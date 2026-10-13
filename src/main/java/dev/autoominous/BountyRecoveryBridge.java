@@ -5,8 +5,5 @@ public final class BountyRecoveryBridge {
    }
 
    public static void onTick() {
-      if (!BountyRuntime.isBlockingSell()) {
-         DeathRecoveryRuntime.onTick();
-      }
    }
 }

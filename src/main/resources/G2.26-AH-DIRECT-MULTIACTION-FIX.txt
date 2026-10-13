@@ -1,0 +1,1 @@
+G2.26: execute purchase confirmation via MultiActionDialog action + DialogScreen.runAction; no widget coordinate clicking.

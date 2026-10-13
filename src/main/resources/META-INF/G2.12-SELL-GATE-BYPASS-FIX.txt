@@ -1,0 +1,5 @@
+G2.12 Sell Gate Bypass Fix
+- Root cause: AutoSellLogic.waitForSellContents() was invoked before MOVING_ITEMS executor and could block it for up to 8s/retry.
+- Fix: when currentState == MOVING_ITEMS, waitForSellContents() returns false immediately.
+- Readiness/retry behavior remains unchanged for other states.
+- HumanizedSellRuntime, FarmCycle, Vex/Death/Home/RMB logic unchanged from G2.11.

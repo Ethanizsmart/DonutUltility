@@ -1,0 +1,4 @@
+G2.31
+Fix: expose Auto Buy Missing Sword (30s) as a real malilib ConfigBoolean row in C+X -> Death Recovery.
+Base: user-supplied G2.30.
+Runtime/AH logic unchanged.

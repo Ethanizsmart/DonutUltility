@@ -1,0 +1,20 @@
+﻿{
+    "Changed":  [
+                    "dev\\autoominous\\AutomationCoordinator.java",
+                    "dev\\autoominous\\DeathRecoveryRuntime.java",
+                    "dev\\autoominous\\DeathRecoverySettings.java",
+                    "dev\\autoominous\\G232SafeRuntime.java",
+                    "dev\\autoominous\\MissingSwordWatchdogRuntime.java",
+                    "dev\\autoominous\\MissingSwordWatchdogSettings.java",
+                    "dev\\autoominous\\SwordRecoveryRuntime.java",
+                    "dev\\autoominous\\TransactionGate.java",
+                    "dev\\autoominous\\gui\\AutoOminousGuiConfigs.java",
+                    "dev\\autoominous\\mixin\\MinecraftTickMixin.java"
+                ],
+    "Added":  [
+                  "dev\\autoominous\\AuctionSwordRules.java",
+                  "dev\\autoominous\\MissingSwordTimer.java",
+                  "dev\\autoominous\\RecoverySellBridge.java",
+                  "dev\\autoominous\\mixin\\DialogScreenAccessor.java"
+              ]
+}

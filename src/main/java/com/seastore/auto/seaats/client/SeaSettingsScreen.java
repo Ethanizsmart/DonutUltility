@@ -115,9 +115,9 @@ public final class SeaSettingsScreen extends class_437 {
       this.offset = Math.max(0, Math.min(this.offset, Math.max(0, this.groups.get(this.tab).size() - this.rows)));
 
       for (int var1 = 0; var1 < TABS.length; var1++) {
-         final int tabIndex = var1;
+         int var2 = var1;
          this.button((var1 == this.tab ? "§b" : "§7") + TABS[var1], this.x + 8, this.y + 49 + var1 * 25, this.side - 8, 20, () -> {
-            this.tab = tabIndex;
+            this.tab = var2;
             this.offset = 0;
             this.error = "";
             this.rebuild();
@@ -126,9 +126,9 @@ public final class SeaSettingsScreen extends class_437 {
 
       List var8 = this.groups.get(this.tab);
 
-      for (int var2 = this.offset; var2 < Math.min(var8.size(), this.offset + this.rows); var2++) {
-         SeaSettingsScreen.Entry var3 = (SeaSettingsScreen.Entry)var8.get(var2);
-         int var4 = this.startY + (var2 - this.offset) * this.rowHeight;
+      for (int var9 = this.offset; var9 < Math.min(var8.size(), this.offset + this.rows); var9++) {
+         SeaSettingsScreen.Entry var3 = (SeaSettingsScreen.Entry)var8.get(var9);
+         int var4 = this.startY + (var9 - this.offset) * this.rowHeight;
          int var5 = Math.max(80, Math.min(156, this.contentW / 2));
          int var6 = this.contentX + this.contentW;
          if (var3.maxKey() != null) {
@@ -136,8 +136,8 @@ public final class SeaSettingsScreen extends class_437 {
             this.field(var3.key(), var3.label() + " tối thiểu", var6 - var5, var4 + 5, var7);
             this.field(var3.maxKey(), var3.label() + " tối đa", var6 - var7, var4 + 5, var7);
          } else if (isBoolean(var3.key())) {
-            boolean var12 = Boolean.parseBoolean(this.draft.get(var3.key()));
-            this.button(var12 ? "§aBẬT" : "§7TẮT", var6 - 64, var4 + 4, 64, 20, () -> {
+            boolean var13 = Boolean.parseBoolean(this.draft.get(var3.key()));
+            this.button(var13 ? "§aBẬT" : "§7TẮT", var6 - 64, var4 + 4, 64, 20, () -> {
                this.draft.put(var3.key(), Boolean.toString(!Boolean.parseBoolean(this.draft.get(var3.key()))));
                this.rebuild();
             });
@@ -146,22 +146,22 @@ public final class SeaSettingsScreen extends class_437 {
          }
       }
 
-      int var9 = this.y + this.h - 28;
+      int var10 = this.y + this.h - 28;
       if (var8.size() > this.rows) {
-         class_4185 var10 = this.button("‹", this.contentX, var9, 22, 20, () -> {
+         class_4185 var11 = this.button("‹", this.contentX, var10, 22, 20, () -> {
             this.offset = Math.max(0, this.offset - this.rows);
             this.rebuild();
          });
-         var10.field_22763 = this.offset > 0;
-         class_4185 var11 = this.button("›", this.contentX + 25, var9, 22, 20, () -> {
+         var11.field_22763 = this.offset > 0;
+         class_4185 var12 = this.button("›", this.contentX + 25, var10, 22, 20, () -> {
             this.offset = Math.min(Math.max(0, var8.size() - this.rows), this.offset + this.rows);
             this.rebuild();
          });
-         var11.field_22763 = this.offset + this.rows < var8.size();
+         var12.field_22763 = this.offset + this.rows < var8.size();
       }
 
-      this.button("Hủy", this.x + this.w - 148, var9, 56, 20, this::method_25419);
-      this.button("§bLưu & đóng", this.x + this.w - 86, var9, 76, 20, this::save);
+      this.button("Hủy", this.x + this.w - 148, var10, 56, 20, this::method_25419);
+      this.button("§bLưu & đóng", this.x + this.w - 86, var10, 76, 20, this::save);
    }
 
    private class_4185 button(String var1, int var2, int var3, int var4, int var5, Runnable var6) {
@@ -192,24 +192,28 @@ public final class SeaSettingsScreen extends class_437 {
       String var4 = this.draft.get(var2).trim();
       if (var3 == boolean.class) {
          return Boolean.parseBoolean(var4);
-      } else if (var3 == String.class) {
+      }
+
+      if (var3 == String.class) {
          return var4;
-      } else if (var3 == List.class) {
+      }
+
+      if (var3 == List.class) {
          return new ArrayList<>(Arrays.stream(var4.split(",")).map(String::trim).filter(var0 -> !var0.isEmpty()).distinct().toList());
-      } else {
-         try {
-            double var5 = Double.parseDouble(var4.replace(',', '.'));
-            if (Double.isFinite(var5) && !(var5 < var1.min()) && !(var5 > var1.max()) && (var3 != int.class || var5 == Math.rint(var5))) {
-               if (var3 == int.class) {
-                  return Integer.valueOf((int)var5);
-               }
-               return Double.valueOf(var5);
-            } else {
-               throw new NumberFormatException();
+      }
+
+      try {
+         double var5 = Double.parseDouble(var4.replace(',', '.'));
+         if (Double.isFinite(var5) && !(var5 < var1.min()) && !(var5 > var1.max()) && (var3 != int.class || var5 == Math.rint(var5))) {
+            if (var3 == int.class) {
+               return Integer.valueOf((int)var5);
             }
-         } catch (NumberFormatException var7) {
-            throw new IllegalArgumentException(var1.label() + ": nhập " + var1.min() + "–" + var1.max() + (var3 == int.class ? " (số nguyên)" : ""));
+            return Double.valueOf(var5);
+         } else {
+            throw new NumberFormatException();
          }
+      } catch (NumberFormatException var7) {
+         throw new IllegalArgumentException(var1.label() + ": nhập " + var1.min() + "–" + var1.max() + (var3 == int.class ? " (số nguyên)" : ""));
       }
    }
 

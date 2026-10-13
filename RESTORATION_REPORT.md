@@ -1,183 +1,150 @@
-# Báo cáo khôi phục — 09/10/2026
+# Báo cáo khôi phục Donut Utility CoreV2
 
-## A. Tổng quan
+Ngày: 13/10/2026. Workflow: skill `restore-fabric-mod`.
 
-Đã áp dụng skill `restore-fabric-mod` tại
-`C:/Users/Ethan/.codex/skills/restore-fabric-mod/SKILL.md`, đọc cả
-`references/mappings-and-build.md`, `references/readiness-review.md` và
-`scripts/compare_jars.py` trước khôi phục. Workflow: kiểm kê → sao lưu → decompile
-→ dựng Gradle/mappings → sửa theo bytecode → compile/build → đối chiếu → đánh giá.
+## A. Đầu vào và dự án
 
-- Đầu vào: `D:/DonutUtil/DonutUtility-1.21.11-1.1.4-CLASSIC-QUICKMOVE-SELL-FIX12 (1).jar`.
-- Bản sao bất biến: `D:/DonutUtil/restore-work/backup/original.jar`.
-- SHA-256 gốc và bản sao: `b5f09a2c54f23449fdbf45a853c75cb53351611cde495cd4356f400b12779ac9`.
-- Workspace ban đầu chỉ có JAR, không có source hoặc Git repository; không ghi đè project cũ.
-- Decompiler: **Vineflower 1.11.2**, JAR từ Maven Central; kiểm tra SHA-512 công bố.
-  CFR không cần dùng. [Nguồn Vineflower](https://github.com/Vineflower/vineflower/releases/).
-- Phát hiện **67 class, 6 package**, decompile đủ thành **58 file Java** với 9 type
-  lồng; không thấy marker method decompile thất bại. Một cảnh báo metadata
-  `AutoSellLogic$State` không nhất quán được điều tra bằng `javap`.
-- 6 resource file trong JAR; không có nested JAR, access widener hay service descriptor.
-- Minecraft names dùng Intermediary. Tên class/method của mod còn đọc được;
-  không có bằng chứng đủ để suy ra namespace phát triển ban đầu của tác giả.
-- Source nguyên trạng từ Vineflower được giữ tại `../restore-work/decompiled`.
+- Đầu vào: `D:/CoreV2/DonutUtility-CoreV2-v0.2.35-G2.35-SWORD-INVENTORY-RECOVERY.jar`.
+- Bản sao đã kiểm tra hash: `D:/CoreV2/restoration/original/`, giữ nguyên JAR gốc.
+- SHA-256 gốc: `8289cd8949dd6dbd9a07418250d24c17c5fd7b69e892b812c6150755fb66b5da`.
+- Dự án chỉnh sửa: `D:/CoreV2/DonutUtility-restored/`.
+- Mã decompile chưa sửa và tài nguyên: `D:/CoreV2/restoration/baseline/`.
+- Không có source/build cũ trong workspace trước khi khôi phục; không có Git repository cũ.
+- Metadata: mod ID `donututility`, version `1.1.7`, client environment,
+  main entrypoint `dev.autoominous.AutoOminousMod`, 9 client mixin.
+- Minecraft 1.21.11; class major 65 (Java 21); không có nested dependency JAR,
+  access widener hoặc chữ ký JAR trong đầu vào.
+- Gốc: 146 class, 10 package, 39 resource. Decompile: 126 file Java,
+  các lớp nested/anonymous nằm chung file lớp ngoài. Rebuild: 148 class,
+  gồm toàn bộ 146 class gốc và 2 class dữ liệu bổ sung đã được duyệt.
 
-| Thành phần | Phiên bản/bằng chứng |
+Decompiler: Vineflower **1.12.0**, không dùng CFR fallback.
+Nguồn tải: [Maven Central](https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.12.0/).
+Đã đối chiếu SHA-512 với checksum công bố.
+SHA-256 decompiler: `1dfcfe974395734fa467ce620661c7623d05ba83670de0529b1fbd63ff548b9d`.
+Decompiler chạy bằng Oracle Java 26.0.1, exit 0; compiler/build dùng JDK 21.
+Cảnh báo decompiler: InnerClasses metadata của `AutoSellLogic$State` không nhất quán
+giữa owner và caller, và thiếu hai nested class của `CoreV2RuntimeBridge`.
+Không thấy marker phương thức decompile thất bại; các class gốc đều có trong rebuild.
+
+Lệnh decompile:
+
+```powershell
+java -jar D:\CoreV2\restoration\tools\vineflower-1.12.0.jar D:\CoreV2\restoration\original\DonutUtility-CoreV2-v0.2.35-G2.35-SWORD-INVENTORY-RECOVERY.jar D:\CoreV2\restoration\baseline
+```
+
+## B. Build và kiểm tra
+
+| Hạng mục | Kết quả |
 |---|---|
-| Mod | `donututility` 1.1.4, client-only |
-| Minecraft | 1.21.11, metadata gốc |
-| Java | JDK 21.0.9 JetBrains tại `D:/Android Studio/jbr`; classfile major 65 |
-| Gradle | 9.4.0, wrapper chính thức; wrapper JAR và distribution có SHA-256 |
-| Loom | 1.16.3 |
-| Fabric Loader | build pin 0.18.4; metadata gốc cho phép ≥0.18.1 |
-| Fabric API | build pin 0.141.3+1.21.11; source legacy có imports API |
-| MaLiLib | build pin 0.27.14; metadata gốc yêu cầu `>=0.27.14- <0.28.0-` |
-| Mappings | Intermediary 1.21.11 Tiny v2 với cột named bằng intermediary |
+| Gradle wrapper `--version` | PASS, exit 0 |
+| `compileJava --rerun-tasks` lần 1 | FAIL, 35 compiler errors, 4 null-varargs warnings |
+| `compileJava --rerun-tasks` sau sửa | PASS, exit 0, task thực sự chạy |
+| `build` | PASS, exit 0; jar, sourcesJar, remapJar, remapSourcesJar chạy |
+| Script `build.ps1` | PASS, exit 0; build tiếp theo up-to-date |
+| Gradle unit tests | `NO-SOURCE`; không có unit test suite của mod |
+| So sánh archive và resource | PASS, không mất class/resource |
+| Chữ ký và access flags của member không synthetic | PASS cho 146 class gốc |
+| Thứ tự enum | PASS cho toàn bộ class gốc |
+| Annotation class/field/method | PASS sau hai chuẩn hóa biểu diễn Mixin bên dưới |
+| Differential parser và arithmetic | PASS với scaffolding giới hạn bên dưới |
+| Import/debug trong IDE | NOT TESTED; hướng dẫn thiết lập trong README |
+| Khởi động Minecraft / load mod / GUI / HUD / tính năng server | NOT TESTED |
 
-Các build pin là bộ dependency đã build được, không được coi là phiên bản
-chính xác tác giả đã dùng. Manifest JAR gốc chỉ ghi Created-By 21.0.11 (Debian).
-MaLiLib 0.27.14 có manifest Loom 1.16.3; Loom 1.14.10 ban đầu từ chối nó.
-[Module metadata chính thức](https://maven.fabricmc.net/net/fabricmc/fabric-loom/1.16.3/fabric-loom-1.16.3.module)
-chỉ định Java 21 và Gradle plugin API 9.4.0. MaLiLib yêu cầu networking API
-≥5.1.4 và resource loader; Fabric API đã resolve networking 5.1.5+ae1e07683e.
+Toolchain đã dùng: JDK 21.0.9 JetBrains tại `D:/Android Studio/jbr`
+cho launcher, daemon và Java 21 toolchain; Gradle 9.4.0; Loom 1.16.3;
+Fabric Loader 0.18.4; Fabric API 0.141.3+1.21.11; MaLiLib 0.27.14.
+Đây là build pins được xác minh, không xác định được phiên bản build gốc của tác giả.
 
-Entrypoint giữ nguyên `dev.autoominous.AutoOminousMod` (main). Cấu hình
-`autoominous.mixins.json` giữ 8 mixin client: MinecraftTick, AutoTpaTick,
-MessageHandler, DisconnectTick, DisconnectConnectScreen, DisconnectDisconnectedScreen,
-StatsTick và StatsHud. Không thêm entrypoint legacy `SeaatsClient`.
+MaLiLib được đối chiếu checksum theo metadata Modrinth. Manifest dependency
+ghi Loom 1.16.3; module metadata chính thức của Loom yêu cầu Java 21 và Gradle API
+9.4.0. Dùng wrapper chính thức lấy từ tag Gradle v9.4.0; checksum wrapper
+`55243ef57851f12b070ad14f7f5bb8302daceeebc5bce5ece5fa6edb23e1145c`
+đã khớp checksum Gradle công bố. Distribution SHA-256 pin trong wrapper đã đối chiếu:
+`60ea723356d81263e8002fec0fcf9e2b0eee0c0850c7a3d7ab0a63f2ccc601f3`.
+Nguồn: [Loom module metadata](https://maven.fabricmc.net/net/fabricmc/fabric-loom/1.16.3/fabric-loom-1.16.3.module),
+[Gradle wrapper checksum](https://services.gradle.org/distributions/gradle-9.4.0-wrapper.jar.sha256),
+[Gradle distribution checksum](https://services.gradle.org/distributions/gradle-9.4.0-bin.zip.sha256).
 
-## B. Kết quả có bằng chứng
+Mapping giữ Intermediary: lấy Tiny v2 của Minecraft 1.21.11 và tạo cột `named`
+giống hệt cột `intermediary` bằng mã tái lập trong `build.gradle`.
+JAR runtime cuối được Loom remap và khai báo namespace `intermediary`.
+Không tắt mixin/remapping, không loại bỏ class, không thêm class binary vào resources.
 
-| Kiểm tra | Kết quả |
+Compiler còn notes về deprecated API và raw/unchecked generics.
+Cảnh báo cấu hình Loom lần đầu về remap `modifiers` xuất hiện khi setup dependency;
+không phải compiler error; các build tiếp theo thành công.
+
+## C. Các sửa chữa và bằng chứng
+
+| Source | Thay đổi |
 |---|---|
-| Wrapper `--version` | PASS, exit 0, Gradle 9.4.0/JDK 21.0.9 |
-| `compileJava --rerun-tasks` cuối | PASS, exit 0; compile thực sự chạy |
-| `build` cuối | PASS, exit 0; jar, sourcesJar, remapJar, remapSourcesJar chạy |
-| Bộ JUnit trong Gradle | Không có: `test NO-SOURCE`, không coi là test pass |
-| Test parser cô lập | PASS, 13 ca đối chiếu original/rebuilt, cả kiểu boxing và lỗi input |
-| Test số học cô lập | PASS, 112 ca đối chiếu original/rebuilt, gồm biên long/int |
-| Kiểm kê class/package | PASS: 67/67 class, 6/6 package, không thêm/bớt |
-| Method/field không synthetic | PASS: không thiếu; so sánh cả private descriptors |
-| Enum constants/thứ tự | PASS: không đổi |
-| Resources | 5/6 byte-identical; chỉ manifest thay đổi |
-| Metadata/entrypoint/mixin/assets/license | PASS: giữ nguyên bytes |
-| Namespace đầu ra | PASS: manifest `intermediary`, descriptors giữ tên `class_*` |
-| `vscode` | PASS, exit 0; sinh config và tải development assets |
-| `runClient --dry-run` | PASS, exit 0; không thực thi game |
-| IDE hết lỗi/import/debug | NOT TESTED |
-| Minecraft khởi động/mod load | NOT TESTED |
-| Automation, HUD, GUI trong game | NOT TESTED |
+| `CoreV2RuntimeBridge.java` | Dựng lại `AnchorStatus(inside, stableMs)` và `SwordStatus(hotbar, inventory, freeSlot)` từ descriptor và field references trong bytecode. Người dùng đã duyệt. Sentinel suy luận `OUTSIDE(false,0L)`, `EMPTY(false,false,false)`; initializer gốc không thể phục hồi vì class không có trong JAR. |
+| `AutoSellLogic.java` | Khôi phục list player generic. `State` dùng package visibility ở source để khớp classfile package access và caller trong cùng package. InnerClasses metadata cũ ghi private nhưng class access flags không private; không mở rộng một member private thực sự. |
+| `HumanizedSellRuntime.java` | Boolean được đổi rõ ràng thành 0/1; giữ hai lần gọi getter theo thứ tự cũ. `LCMP` dùng `Long.compare`, giữ eager bitwise và tránh overflow của phép trừ long do decompile. |
+| `SeaSettingsScreen.java` | Map có key `Field`; tách nhánh boxing `Integer`/`Double`, đúng bytecode gốc. Ternary decompile cũ sẽ box mọi giá trị thành Double. |
+| `SellRhythmRuntime.java` | List slot có generic Integer. |
+| `DisconnectRuntime.java`, `DisconnectSettings.java`, `SwordRecoveryRuntime.java` | Khôi phục generic player/string/text để vòng lặp đúng kiểu. |
+| `AhScreenCloseFix.java`, `DeathRecoveryRuntime.java`, `HomePositionGuardRuntime.java`, `SlashSellRuntime.java` | Dùng `new Object[]{null}` cho Method.invoke để truyền một tham số null, khớp `anewarray/aastore` trong bytecode gốc. |
+| `SlashSellSettings.java` | Khôi phục thứ tự construction options theo `<clinit>`; giữ construction list tạm nhưng chỉ gán final TOGGLE_OPTIONS một lần vào list 4 phần tử. Gốc không đọc list tạm giữa hai assignments. `snapshot()` vẫn chạy trước ghi `initialized=false`. |
 
-125 ca kiểm tra cô lập chỉ lấy các method tính toán/parser đã chọn, dùng
-scaffolding trơ và thời gian/cấu hình giả. Không khởi tạo mod, Minecraft,
-webhook, network hay giao dịch. Đây không phải 125 test chức năng toàn mod.
+Tổng 13 file Java được sửa so với baseline. Các getter
+`isHumanizedSellV2Enabled()` và `isBulkSameItemTransferEnabled()` trả false
+trong bytecode gốc và vẫn trả false trong source; không tự bật tính năng ẩn.
+Các version string cũ, command strings và nội dung tài nguyên giữ nguyên.
 
-Python không khả dụng trên PATH, nên dùng công cụ Java/ASM chỉ đọc archive
-`../restore-work/tools/CompareArtifacts.java` thay cho helper Python của skill.
-Tất cả 67 class khác bytes sau biên dịch lại, không suy ra thay đổi chức năng
-từ điều này. Các khác biệt call/write sequence do bố trí nhánh, compiler,
-interface/concrete collection và sửa nguồn đã được phân loại; không chứng minh
-tương đương bytecode/toàn bộ control flow. Lambda/bridge synthetic không được
-đòi tên giống hệt giữa hai compiler.
+Differential check dùng ASM 9.9 để đọc classfile mà không khởi tạo mod:
 
-Manifest mới ghi Gradle/Loom/Loader/mappings thay cho Created-By cũ; không có
-ngữ nghĩa entrypoint phụ thuộc manifest bị mất. Không đóng gói dependency mới
-vào JAR mod. Dependencies được resolve bằng Gradle, không dùng build scan.
+- Copy duy nhất `SeaSettingsScreen.parse` và lambda liên quan vào lớp không có
+  superclass Minecraft, giữ record Entry, thay Config bằng các field cùng type,
+  cung cấp draft map thủ công. 28 input kiểm tra Integer/Double, boolean/string/list,
+  trim/deduplicate, giá trị biên, số thập phân, dấu phẩy, NaN/Infinity và invalid input.
+  So sánh type/value và exception class/message giữa gốc và rebuild.
+- Copy hai phương thức arithmetic vào lớp inert, thay nanoTime bằng clock field
+  xác định và getter bulk bằng stub có đếm lần gọi. 300 trường hợp trên long min/max,
+  deadline zero/negative, các boolean và burst values; output/latch/call counts khớp.
+- Nạp riêng helper `AhScreenCloseFix` không có initializer/entrypoint; dùng mock client
+  không có player, xác nhận fallback gọi `method_1507` đúng một lần với một null argument.
 
-## C. Sửa source và phát hiện
+Các thay thế chỉ thuộc harness, không sửa production bytecode. Không thực thi
+entrypoint, networking, webhook, command gửi server hoặc config thật.
+Pure checks không chứng minh toàn bộ state machine hay GUI hoạt động trong game.
 
-Lần compile đầu đầy đủ báo **48 lỗi**; sau khi sửa xuất hiện thêm **1 lỗi lambda**.
-Đã xử lý **49 diagnostic lỗi compiler** và **3 warning reflection-varargs**.
-Đây không phải 49 lỗi logic độc lập. Hiện còn ghi chú deprecated/unchecked;
-chưa audit đầy đủ từng warning bằng `-Xlint`.
+Annotation khác byte thô ở 7 mixin do targets chuyển dotted sang slash name và
+Inject.at scalar chuyển thành array một phần tử. Chỉ chuẩn hóa hai biểu diễn đã
+quan sát này khi so sánh; Mixin hỗ trợ chúng qua
+[ClassInfo name normalization](https://github.com/SpongePowered/Mixin/blob/master/src/main/java/org/spongepowered/asm/mixin/transformer/ClassInfo.java)
+và [Annotations list handling](https://github.com/SpongePowered/Mixin/blob/master/src/main/java/org/spongepowered/asm/util/Annotations.java).
+Không thay target class, target method, injection point hoặc require.
 
-**14 file Java khác bản Vineflower**, còn 44 file giữ nguyên:
+## D. Artifact và mức sẵn sàng
 
-| File | Khôi phục |
-|---|---|
-| `AutoSellLogic` | Generic List player; thứ tự khởi tạo 2 string; 5 khai báo về package access |
-| `HumanizedSellRuntime` | Boolean → 0/1 cho phép toán; dùng Long.compare tương đương LCMP, không trừ long gây overflow |
-| `SeaSettingsScreen` | Generic Map, capture chỉ số tab final, phục hồi Integer/Double boxing |
-| `DisconnectRuntime` | Generic List player |
-| `DisconnectSettings` | Generic List string và thứ tự initialized |
-| `SwordRecoveryRuntime` | Generic List Text tooltip |
-| `SlashSellSettings` | Thứ tự khởi tạo toggle, final list được gán một lần; giữ việc tạo list cũ |
-| `DeathRecoveryRuntime` | Reflection truyền đúng một đối số null |
-| `HomePositionGuardRuntime` | Reflection truyền đúng một đối số null |
-| `SlashSellRuntime` | Reflection truyền đúng một đối số null |
-| `AutoReconnectSettings` | initialized=true sau loadFromDisk/snapshot như bytecode gốc |
-| `AutoTpaSettings` | initialized=true sau loadFromDisk/snapshot |
-| `BountyHudSettings` | initialized=true sau loadFromDisk/snapshot |
-| `StatsSettings` | initialized=true sau loadFromDisk/snapshot |
+**READY cho chỉnh sửa và build. Runtime/release chưa xác minh.**
 
-Các file Java nằm dưới `src/main/java/com/seastore/auto/seaats/client` hoặc
-`src/main/java/dev/autoominous` theo package tương ứng. Danh sách đường dẫn đầy đủ:
-`../restore-work/logs/changed-java-files.txt`.
+- Runtime JAR: `build/libs/DonutUtility-CoreV2-restored-1.1.7.jar`.
+- SHA-256 runtime: `970e7728f9f4915e4079e424fedcd530bd80108006238fd41f5042342a40c743`.
+- Java source JAR: `build/libs/DonutUtility-CoreV2-restored-1.1.7-sources.jar`.
+- Tất cả 146 class gốc còn tồn tại; thêm đúng hai lớp dữ liệu đã duyệt.
+- Tất cả class major 65; không thấy duplicate entries hoặc invalid class headers.
+- 39 resource giữ đủ; chỉ manifest khác, với build provenance của Loom thay
+  Created-By của build gốc. Manifest gốc không có entrypoint đặc biệt/signature.
+- `fabric.mod.json`, mixin JSON, assets, LICENSE và các patch notes khớp byte gốc.
+- Mọi class byte thay đổi khi recompilation; không khẳng định bytecode hoặc hành vi
+  toàn bộ mod tương đương chỉ từ inventory/descriptors.
 
-**Thay đổi quyền truy cập đã được người dùng đồng ý riêng:** JAR gốc có
-HumanizedSellRuntime trực tiếp truy cập private member của AutoSellLogic, không
-có nest metadata hợp lệ. Đổi `tickDelay`, `currentState`, `isSellGuiOpen`,
-`isProtectedNeverSellItem` và enum `State` sang package access. Không đổi branch,
-timer hoặc thứ tự enum. Đây là sửa bất nhất vốn có của JAR, không chỉ formatting.
+Rủi ro cần chú ý khi phát triển: hai helper có initializer suy luận, tên Intermediary
+khó đọc, reflection phụ thuộc field/method Minecraft và menu/chat riêng của server.
+Phạm vi dependency trong metadata rộng hơn bộ build pins đã kiểm tra.
 
-**Giữ nguyên có chủ ý:** `isHumanizedSellV2Enabled()` và
-`isBulkSameItemTransferEnabled()` trả false trong bytecode gốc; một số helper
-trả hằng/không làm việc. Không bật lại tính năng dựa trên tên setting. Các class
-SeaATS legacy, payment/webhook vẫn được giữ; `SlashSellRuntime.syncSeaConfig`
-vô hiệu hóa nhiều đường legacy giống JAR gốc.
+## E. Tiếp tục chỉnh sửa
 
-| Mức độ | Phát hiện/giới hạn và hướng xử lý |
-|---|---|
-| Cao, đã sửa với đồng ý | Private access bất nhất ở AutoSellLogic/HumanizedSellRuntime; vẫn cần test chạy trong game |
-| Cao, chưa xác minh runtime | Bounty/Home/Death/Sword/Vex chia sẻ trạng thái và quyền GUI. Test timeout, disconnect, tắt/bật giữa chu kỳ, resume trước khi mở rộng automation |
-| Trung bình | TPA/Bounty/Sword nhận diện bằng tên GUI/chat/tooltip tiếng Anh và item. Test đúng định dạng server và locale mục tiêu |
-| Trung bình | Nhiều reflection và catch Throwable bỏ qua lỗi; build không phát hiện lỗi tên runtime. Kiểm tra log trong client thử nghiệm |
-| Trung bình | Metadata Loader/API khá rộng hoặc không khai báo API trực tiếp, trong khi bộ build pin hẹp. Chưa chứng minh toàn bộ range; giữ metadata gốc theo yêu cầu |
-| Trung bình | Source Intermediary, biến varN và thiếu regression suite toàn state machine làm tăng chi phí bảo trì |
+1. Import Gradle bằng JDK 21, xem README để chọn file đúng tính năng.
+2. Sửa source và chạy `build.ps1`; kiểm tra thêm logic mà thay đổi tác động.
+3. Khi có nhu cầu xác minh trong game, dùng profile/config kiểm thử riêng và kiểm tra
+   load, GUI, phím tắt, HUD, save/load trước khi thử automation với server.
 
-## D. Mức sẵn sàng
-
-**PARTIALLY READY. Có thể chỉnh sửa, thêm class/module và build JAR ngay.**
-
-| Nhu cầu | Đánh giá |
-|---|---|
-| Thêm class/module | Sẵn sàng về source/build |
-| Thêm chức năng | Có điểm mở rộng; cần kiểm thử ưu tiên và state machine |
-| Mở rộng Settings GUI | Có GUI MaLiLib; parser legacy đã kiểm tra cô lập |
-| Thêm keybind | Có provider/map/category; cần đăng ký đủ |
-| Thêm HUD | Có StatsHudMixin, cần kiểm tra render thực tế |
-| Thêm cấu hình | Có JSON/Properties và các handler; cần nối save/load/validation |
-| Development client | Task/launch config/assets sẵn; khởi động chưa kiểm thử |
-| Debug VS Code | Config đã sinh; Gradle import/breakpoint chưa kiểm thử |
-| Build sau chỉnh sửa | Đã chứng minh qua nhiều lần compile/build |
-
-Chưa kết luận READY cho thay đổi automation phức tạp hay phát hành, do còn
-reflection, trạng thái tương tác và chưa có kiểm thử runtime. Build thành công
-không đồng nghĩa mod load hay mọi tính năng hoạt động đúng.
-
-## E. Đầu ra và bước tiếp theo
-
-- Project: `D:/DonutUtil/restored-donututility`.
-- Source: `src/main/java`; tài nguyên: `src/main/resources`.
-- Runtime JAR: `build/libs/donututility-1.1.4.jar`.
-- SHA-256 runtime JAR: `a26a0cf98834b6e468f6b3bb33547866d2e85128b515dc49f869954162f47d07`.
-- Source JAR: `build/libs/donututility-1.1.4-sources.jar`.
-- Đã tạo `settings.gradle`, `build.gradle`, `gradle.properties`, wrapper đầy đủ,
-  `.gitignore`, `.vscode/launch.json`, README và báo cáo này.
-- Bằng chứng cuối ở `../restore-work/logs`: `compile-final.log`, `build-final.log`,
-  `artifact-comparison-final.txt`, `parser-differential-test.log`,
-  `arithmetic-differential-test.log`, `vscode.log`, `runClient-dry-run.log`.
-- Tools/baseline/logs nằm riêng trong `../restore-work`; build/cache/assets được
-  Gradle sinh trong project và Gradle user home hiện có. Không xóa cache người dùng.
-
-1. Làm theo README để import Gradle bằng JDK 21 trong VS Code.
-2. Chủ động chạy client profile riêng; xác minh mod load, 8 mixin và GUI/keybind/HUD.
-3. Kiểm tra cấu hình save/load, giá trị biên, bật/tắt và reload.
-4. Trước thêm automation, lập test cho tranh chấp GUI, timeout, disconnect,
-   death/home/sword/Vex và sự kiện chat; dùng môi trường kiểm thử kiểm soát được.
-5. Compile/build sau mỗi thay đổi và đối chiếu artifact; chỉ đánh giá sẵn sàng
-   phát hành sau khi có kết quả runtime.
-
-**PROJECT ĐÃ SẴN SÀNG ĐỂ VIẾT THÊM CHỨC NĂNG CHƯA?** Có về source và build;
-**PARTIALLY READY** về phát triển toàn diện, còn bước xác minh IDE/runtime và
-regression các cơ chế automation tương tác.
+Logs và bằng chứng nằm tại `D:/CoreV2/restoration/logs/`: decompile, Gradle version,
+hai lần compile, build, jar-comparison JSON, raw/canonical annotation comparison,
+differential output, danh sách source thay đổi và javap của các lớp có sửa quan trọng.
+Harness ở `D:/CoreV2/restoration/tools/VerifyRestoration.java`.
+Không chạy Minecraft trong phiên khôi phục này.

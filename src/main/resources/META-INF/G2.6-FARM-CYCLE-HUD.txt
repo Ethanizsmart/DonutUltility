@@ -1,0 +1,8 @@
+G2.6 Farm Cycle HUD
+- Top-left compact Farm Cycle HUD
+- Phase + cycle elapsed
+- Actual Hold RMB owner
+- Green/yellow/red state colors
+- ERROR reason: SWORD_MISSING >2s
+- Recovery reason: DEATH/HOME/SWORD
+- Existing Stats/Reconnect/Bounty HUDs shift down while Farm Cycle HUD is active

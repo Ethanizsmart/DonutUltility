@@ -1,0 +1,5 @@
+G2.21e AH Direct Lore/Component Price Reader
+- Base: G2.21d AH per-slot diagnostic
+- Adds DataComponentTypes.LORE price text fallback to AhSwordPurchaseFix.tooltipText()
+- parsePrice(), item/enchant filters, click/confirm state machine unchanged
+- Diagnostic remains enabled for live validation

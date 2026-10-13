@@ -22,94 +22,97 @@ public final class ProtectedItemAutoUseRuntime {
    }
 
    public static void onTick() {
-      if (!MasterAutomation.isEnabled()) { forceRelease(); return; }
-      Object var0 = getMinecraftClient();
-      boolean var1 = isEnabled();
-      persistToggleIfChanged(var1);
-      if (var0 != null && var1) {
-         try {
-            Object var2 = getField(var0, "field_1724");
-            Object var3 = getField(var0, "field_1755");
-            if (var2 == null || var3 != null) {
-               release(var0);
-               resetActive();
-               return;
-            }
-
-            if (isExternalSafetyBusy() || isSeaBusy()) {
-               release(var0);
-               resetActive();
-               return;
-            }
-
-            Object var4 = invokeNoArg(var2, "method_31548");
-            if (var4 == null) {
-               release(var0);
-               resetActive();
-               return;
-            }
-
-            int var5 = invokeIntNoArg(var4, "method_67532", -1);
-            int var6 = var5 >= 0 && var5 < 9 ? priorityOfStack(invokeOneInt(var4, "method_5438", var5)) : 0;
-            int var7 = 0;
-            int var8 = -1;
-
-            for (int var9 = 0; var9 < 9; var9++) {
-               Object var10 = invokeOneInt(var4, "method_5438", var9);
-               int var11 = priorityOfStack(var10);
-               if (var11 > var7) {
-                  var7 = var11;
-                  var8 = var9;
+      G232SafeRuntime.preTick();
+      if (!G232SafeRuntime.isSwordRecoverySuspended()) {
+         Object var0 = getMinecraftClient();
+         boolean var1 = isEnabled();
+         persistToggleIfChanged(var1);
+         if (var0 != null && var1) {
+            try {
+               Object var2 = getField(var0, "field_1724");
+               Object var3 = getField(var0, "field_1755");
+               if (var2 == null || var3 != null) {
+                  release(var0);
+                  resetActive();
+                  return;
                }
-            }
 
-            if (var7 == 0) {
-               release(var0);
-               resetActive();
-               return;
-            }
+               if (isExternalSafetyBusy() || isSeaBusy()) {
+                  release(var0);
+                  resetActive();
+                  return;
+               }
 
-            int var13 = var6 == var7 ? var5 : var8;
-            if (var13 < 0 || var13 > 8) {
-               release(var0);
-               resetActive();
-               return;
-            }
+               ConsumableRecoveryRuntime.tickHotbarPromotion(var0);
+               Object var4 = invokeNoArg(var2, "method_31548");
+               if (var4 == null) {
+                  release(var0);
+                  resetActive();
+                  return;
+               }
 
-            boolean var14 = var13 != activeSlot || var7 != activePriority;
-            if (var5 != var13) {
-               invokeOneIntVoid(var4, "method_61496", var13);
-               var14 = true;
-            }
+               int var5 = invokeIntNoArg(var4, "method_67532", -1);
+               int var6 = var5 >= 0 && var5 < 9 ? priorityOfStack(invokeOneInt(var4, "method_5438", var5)) : 0;
+               int var7 = 0;
+               int var8 = -1;
 
-            setUsePressed(var0, true);
-            pressedByUs = true;
-            boolean var15 = invokeBooleanNoArg(var2, "method_6115", false);
-            if (var7 == 3) {
-               if (!var15 && (var14 || repeatCooldown <= 0)) {
-                  triggerItemUse(var0);
+               for (int var9 = 0; var9 < 9; var9++) {
+                  Object var10 = invokeOneInt(var4, "method_5438", var9);
+                  int var11 = priorityOfStack(var10);
+                  if (var11 > var7) {
+                     var7 = var11;
+                     var8 = var9;
+                  }
+               }
+
+               if (var7 == 0) {
+                  release(var0);
+                  resetActive();
+                  return;
+               }
+
+               int var13 = var6 == var7 ? var5 : var8;
+               if (var13 < 0 || var13 > 8) {
+                  release(var0);
+                  resetActive();
+                  return;
+               }
+
+               boolean var14 = var13 != activeSlot || var7 != activePriority;
+               if (var5 != var13) {
+                  G232SafeRuntime.selectHotbarSlotGuarded(var4, "method_61496", var13);
+                  var14 = true;
+               }
+
+               G232SafeRuntime.setUsePressedGuarded(var0, true);
+               pressedByUs = true;
+               boolean var15 = invokeBooleanNoArg(var2, "method_6115", false);
+               if (var7 == 3) {
+                  if (!var15 && (var14 || repeatCooldown <= 0)) {
+                     G232SafeRuntime.triggerItemUseGuarded(var0);
+                     repeatCooldown = 4;
+                  }
+               } else if (!var15 && (var14 || repeatCooldown <= 0)) {
+                  G232SafeRuntime.triggerItemUseGuarded(var0);
                   repeatCooldown = 4;
                }
-            } else if (!var15 && (var14 || repeatCooldown <= 0)) {
-               triggerItemUse(var0);
-               repeatCooldown = 4;
-            }
 
-            if (repeatCooldown > 0) {
-               repeatCooldown--;
-            }
+               if (repeatCooldown > 0) {
+                  repeatCooldown--;
+               }
 
-            activeSlot = var13;
-            activePriority = var7;
-            lastError = "";
-         } catch (Throwable var12) {
-            logErrorOnce(var12);
+               activeSlot = var13;
+               activePriority = var7;
+               lastError = "";
+            } catch (Throwable var12) {
+               logErrorOnce(var12);
+               release(var0);
+               resetActive();
+            }
+         } else {
             release(var0);
             resetActive();
          }
-      } else {
-         release(var0);
-         resetActive();
       }
    }
 
@@ -221,7 +224,7 @@ public final class ProtectedItemAutoUseRuntime {
 
    private static boolean isExternalSafetyBusy() {
       return invokeStaticBoolean("dev.autoominous.BountyRuntime", "isBlockingSell")
-         || invokeStaticBoolean("dev.autoominous.HomePositionGuardRuntime", "isAutoUseBlocked");
+         || invokeStaticBoolean("dev.autoominous.SwordMissingSafetyBridge", "isAutoUseBlocked");
    }
 
    private static boolean isEnabled() {
@@ -310,18 +313,18 @@ public final class ProtectedItemAutoUseRuntime {
    private static Object getField(Object var0, String var1) throws Exception {
       if (var0 == null) {
          return null;
-      } else {
-         for (Class var2 = var0.getClass(); var2 != null; var2 = var2.getSuperclass()) {
-            try {
-               Field var3 = var2.getDeclaredField(var1);
-               var3.setAccessible(true);
-               return var3.get(var0);
-            } catch (NoSuchFieldException var4) {
-            }
-         }
-
-         throw new NoSuchFieldException(var1);
       }
+
+      for (Class var2 = var0.getClass(); var2 != null; var2 = var2.getSuperclass()) {
+         try {
+            Field var3 = var2.getDeclaredField(var1);
+            var3.setAccessible(true);
+            return var3.get(var0);
+         } catch (NoSuchFieldException var4) {
+         }
+      }
+
+      throw new NoSuchFieldException(var1);
    }
 
    private static Object getStaticField(Class<?> var0, String var1) throws Exception {

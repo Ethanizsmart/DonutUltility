@@ -15,7 +15,7 @@ public final class BountyHudSettings {
    public static final ConfigInteger HUD_X = new ConfigInteger("Bounty HUD X", 8, -10000, 10000, "Horizontal position for the Auto Bounty HUD.");
    public static final ConfigInteger HUD_Y = new ConfigInteger("Bounty HUD Y", 74, -10000, 10000, "Vertical position for the Auto Bounty HUD.");
    public static final List<IConfigBase> ALL_OPTIONS = List.of(HUD_X, HUD_Y);
-   private static boolean initialized;
+   private static boolean initialized = true;
    private static int lastHudX;
    private static int lastHudY;
 
@@ -100,6 +100,5 @@ public final class BountyHudSettings {
    static {
       loadFromDisk();
       snapshot();
-      initialized = true;
    }
 }

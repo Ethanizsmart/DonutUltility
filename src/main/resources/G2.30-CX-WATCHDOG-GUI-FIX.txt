@@ -1,0 +1,6 @@
+G2.30 C+X Watchdog GUI Fix
+- Adds explicit C+X > Death Recovery button: Auto-buy missing sword (30s): ON/OFF
+- Button persists setting automatically; no manual config edit required
+- Enabling resets/starts watchdog immediately when swordless
+- Adds watchdog milestone logs at 0/10/20/30 seconds
+- Retains G2.28/G2.29 AH purchase core unchanged

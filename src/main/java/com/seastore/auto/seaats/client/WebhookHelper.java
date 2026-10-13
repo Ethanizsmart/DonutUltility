@@ -24,7 +24,7 @@ public class WebhookHelper {
    public static void sendAlert(String message) {
       String content = message;
       if (Config.discordId != null && !Config.discordId.trim().isEmpty()) {
-         content = message + "\n<@" + Config.discordId.trim() + ">";
+         content = content + "\n<@" + Config.discordId.trim() + ">";
       }
 
       System.out.println("[SeaATS] Sending alert to alert webhook. URL: " + Config.webhookUrlAlert);
@@ -57,8 +57,8 @@ public class WebhookHelper {
                System.err.println("[SeaATS] Webhook send failed: " + ex.getMessage());
                return null;
             });
-         } catch (Exception var4) {
-            System.err.println("[SeaATS] Webhook exception: " + var4.getMessage());
+         } catch (Exception e) {
+            System.err.println("[SeaATS] Webhook exception: " + e.getMessage());
          }
       } else {
          System.out.println("[SeaATS] Webhook URL empty, skipping.");

@@ -77,20 +77,20 @@ final class BountyMinecraftBridge {
       Object var3 = this.mcGetNetworkHandler.invoke(var1);
       if (var3 == null) {
          throw new IllegalStateException("No server connection");
-      } else {
-         this.networkSendCommand.invoke(var3, var2);
       }
+
+      this.networkSendCommand.invoke(var3, var2);
    }
 
    String textToString(Object var1) {
       if (var1 == null) {
          return "";
-      } else {
-         try {
-            return (String)this.textAsString.invoke(var1, 32767);
-         } catch (Throwable var3) {
-            return String.valueOf(var1);
-         }
+      }
+
+      try {
+         return (String)this.textAsString.invoke(var1, 32767);
+      } catch (Throwable var3) {
+         return String.valueOf(var1);
       }
    }
 

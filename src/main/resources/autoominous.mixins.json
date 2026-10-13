@@ -11,7 +11,9 @@
     "DisconnectTickMixin",
     "DisconnectConnectScreenMixin",
     "DisconnectDisconnectedScreenMixin",
-    "StatsTickMixin"
+    "StatsTickMixin",
+    "StatsHudMixin",
+    "SellRelogWatchdogMixin"
   ],
   "injectors": {
     "defaultRequire": 1

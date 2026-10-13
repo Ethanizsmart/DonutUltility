@@ -16,7 +16,7 @@ import java.util.List;
 
 public final class SlashSellSettings implements IConfigHandler {
    public static final ConfigBooleanHotkeyed AUTO_SLASH_SELL = new ConfigBooleanHotkeyed("Auto /sell", false, "");
-   public static final ConfigBooleanHotkeyed AUTO_USE_PROTECTED_ITEMS = new ConfigBooleanHotkeyed("Auto Use Protected Items", false, "");
+   public static final ConfigBooleanHotkeyed AUTO_USE_PROTECTED_ITEMS = new ConfigBooleanHotkeyed("Hold RMB", false, "");
    public static final ConfigBooleanHotkeyed HUMANIZED_SELL_V2 = new ConfigBooleanHotkeyed(
       "Humanized Sell V2", true, "Human-like click timing and slot order for /sell."
    );
@@ -37,7 +37,8 @@ public final class SlashSellSettings implements IConfigHandler {
    );
    public static final List<ConfigBooleanHotkeyed> TOGGLE_OPTIONS;
    static {
-      // The patched bytecode creates both lists. Java permits one final assignment.
+      // The patched input assigns this final field twice. Retain construction order,
+      // with one final assignment; no original code reads the intermediate list.
       List.of(AUTO_SLASH_SELL);
       TOGGLE_OPTIONS = List.of(AUTO_SLASH_SELL, AUTO_USE_PROTECTED_ITEMS, HUMANIZED_SELL_V2, BULK_SAME_ITEM_TRANSFER);
    }

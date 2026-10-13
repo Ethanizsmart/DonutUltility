@@ -48,16 +48,16 @@ public final class StatsProfitRateRuntime {
    public static double getEarnedPerHour() {
       if (!StatsSettings.isEnabled()) {
          return 0.0;
-      } else {
-         ensureInitialized();
-         long var0 = Math.max(0L, System.currentTimeMillis() - rateStartTimeMs);
-         if (var0 <= 0L) {
-            return 0.0;
-         } else {
-            double var2 = StatsRuntime.getTotalEarned() - baselineEarned;
-            return !(var2 <= 0.0) && !Double.isNaN(var2) && !Double.isInfinite(var2) ? var2 / (var0 / 3600000.0) : 0.0;
-         }
       }
+
+      ensureInitialized();
+      long var0 = Math.max(0L, System.currentTimeMillis() - rateStartTimeMs);
+      if (var0 <= 0L) {
+         return 0.0;
+      }
+
+      double var2 = StatsRuntime.getTotalEarned() - baselineEarned;
+      return !(var2 <= 0.0) && !Double.isNaN(var2) && !Double.isInfinite(var2) ? var2 / (var0 / 3600000.0) : 0.0;
    }
 
    private static void ensureInitialized() {

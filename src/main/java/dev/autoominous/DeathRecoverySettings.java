@@ -15,7 +15,8 @@ import java.util.Properties;
 
 public final class DeathRecoverySettings {
    public static final ConfigBoolean AUTO_DEATH_RECOVERY = new ConfigBoolean("Auto Death Recovery", false);
-   public static final ConfigBoolean RECOVER_SWORD_AFTER_DEATH = new ConfigBoolean("Auto Buy Sword", true, "Buy a Diamond Sword with Looting III when none is present in inventory for 5 seconds. Independent of Auto Death Recovery.");
+   public static final ConfigBoolean RECOVER_SWORD_AFTER_DEATH = new ConfigBoolean("Auto Buy Sword", true,
+      "Buy a Diamond Sword with Looting III after 5 seconds of continuous absence. Independent of Auto Death Recovery.");
    public static final ConfigBoolean HOME_1_POSITION_GUARD = new ConfigBoolean("Home 1 Position Guard", false);
    public static final ConfigInteger RESPAWN_DELAY_MS = new ConfigInteger(
       "Respawn Delay (ms)", 2000, 0, 30000, "Wait after the death screen appears before automatically respawning."

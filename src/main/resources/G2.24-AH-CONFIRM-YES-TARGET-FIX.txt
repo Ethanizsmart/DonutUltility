@@ -1,0 +1,6 @@
+G2.24: ConfirmationDialog YES target fix.
+- Never presses DialogScreen.warningButton.
+- Reads ConfirmationDialog.yesButton() label.
+- Prefers exact label match.
+- Strict fallback only when exactly two aligned action buttons remain after warningButton exclusion.
+- No handled-screen/slot fallback.

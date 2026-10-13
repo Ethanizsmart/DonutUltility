@@ -34,18 +34,18 @@ public final class ClientStatusMessage {
    private static Object field(Object var0, String var1) {
       if (var0 == null) {
          return null;
-      } else {
-         for (Class var2 = var0.getClass(); var2 != null; var2 = var2.getSuperclass()) {
-            try {
-               Field var3 = var2.getDeclaredField(var1);
-               var3.setAccessible(true);
-               return var3.get(var0);
-            } catch (Throwable var4) {
-            }
-         }
-
-         return null;
       }
+
+      for (Class var2 = var0.getClass(); var2 != null; var2 = var2.getSuperclass()) {
+         try {
+            Field var3 = var2.getDeclaredField(var1);
+            var3.setAccessible(true);
+            return var3.get(var0);
+         } catch (Throwable var4) {
+         }
+      }
+
+      return null;
    }
 
    private static Method findMethod(Class<?> var0, String var1, int var2) {
