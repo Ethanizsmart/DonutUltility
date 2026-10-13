@@ -39,7 +39,7 @@ public final class G232SafeRuntime {
    }
 
    public static boolean isSwordRecoverySuspended() {
-      return recoveryPending || recoveryHalted;
+      return recoveryPending && !recoveryHalted;
    }
 
    public static void resetForMaster() {
@@ -50,7 +50,7 @@ public final class G232SafeRuntime {
       clearRecovery("new death recovery session");
    }
 
-   private static void clearRecovery(String var0) {
+   public static void clearRecovery(String var0) {
       if (recoveryPending || recoveryHalted) {
          BehaviorLogRuntime.warning("G235_SWORD_RECOVERED", "phase=" + recoveryPhase + " reason=" + var0 + " attempts=" + recoveryAttempts);
       }
@@ -149,7 +149,7 @@ public final class G232SafeRuntime {
 
                            if (var14 < 0) {
                               for (int var16 = 0; var16 < 9; var16++) {
-                                 if (!OminousSurplusSellPolicy.isProtectedForTransfer(stackAt(var6, var16))) {
+                                 if (!ConsumableRecoveryRuntime.isProtectedItem(stackAt(var6, var16))) {
                                     var14 = var16;
                                     break;
                                  }
@@ -162,8 +162,9 @@ public final class G232SafeRuntime {
                                  haltSwordRecovery("no safe hotbar slot");
                               }
                            } else if (var0 - lastSwordSwapMs >= 900L) {
-                              if (recoveryAttempts >= 3) {
-                                 haltSwordRecovery("swap not confirmed after 3 attempts");
+                              if (recoveryAttempts >= 5) {
+                                 clearRecovery("retrying sword recovery");
+                                 lastSwordSwapMs = var0 + 2000L;
                               } else {
                                  Object var17 = ReflectionSupport.field(var3, "field_7512");
                                  Object var18 = var17 == null ? null : ReflectionSupport.field(var17, "field_7763");
