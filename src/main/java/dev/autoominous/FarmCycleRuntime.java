@@ -184,11 +184,13 @@ public final class FarmCycleRuntime {
          drinkSawOmi = true;
          ConsumableRecoveryRuntime.armOmiBaseline();
          enter(FarmCycleRuntime.Phase.DRINK_OMI, var1, "OMI appeared in hotbar; count baseline armed");
+      } else if (!var0.omiAny()) {
+         // Ominous không có trong hotbar lẫn túi chính — đã được dùng trước phase này
+         // (uống sớm khi kiếm đang cất) hoặc không có sẵn. Bỏ qua sang WAIT_FIREWORK.
+         drinkSawOmi = false;
+         enter(FarmCycleRuntime.Phase.WAIT_FIREWORK, var1, "OMI absent from inventory; consumed early or not present; skipping to firework phase");
       } else {
-         if (var0.omiAny()) {
-            BehaviorLogRuntime.warning("OMI_NOT_HOTBAR", "OMI exists in inventory; auto-promote to hotbar requested");
-         }
-
+         BehaviorLogRuntime.warning("OMI_NOT_HOTBAR", "OMI exists in inventory; auto-promote to hotbar requested");
          if (var0.swordHotbar()) {
             enterReturnPath(var0, var1, "sword returned while waiting OMI");
          }
@@ -208,16 +210,19 @@ public final class FarmCycleRuntime {
          fireworkSawRocket = true;
          ConsumableRecoveryRuntime.armFireworkBaseline();
          enter(FarmCycleRuntime.Phase.USE_FIREWORK, var1, "firework appeared in hotbar; count baseline armed");
+      } else if (!var0.fireworkAny()) {
+         // Pháo hoa không có trong hotbar lẫn túi chính — đã được dùng trước phase này
+         // hoặc không có sẵn. Bỏ qua sang MACHINE_RUNNING.
+         fireworkSawRocket = false;
+         enter(FarmCycleRuntime.Phase.MACHINE_RUNNING, var1, "firework absent from inventory; consumed early or not present; skipping to machine phase");
       } else {
-         if (var0.fireworkAny()) {
-            BehaviorLogRuntime.warning("FIREWORK_NOT_HOTBAR", "firework exists in inventory; auto-promote to hotbar requested");
-         }
-
+         BehaviorLogRuntime.warning("FIREWORK_NOT_HOTBAR", "firework exists in inventory; auto-promote to hotbar requested");
          if (var0.swordHotbar()) {
             enterReturnPath(var0, var1, "sword returned before firework phase completed");
          }
       }
    }
+
 
    private static void tickUseFirework(FarmCycleRuntime.Snapshot var0, long var1) {
       if (ConsumableRecoveryRuntime.fireworkConsumedSinceBaseline()) {
@@ -341,12 +346,19 @@ public final class FarmCycleRuntime {
          return 0;
       }
 
-      if (phase != FarmCycleRuntime.Phase.WAIT_OMI && phase != FarmCycleRuntime.Phase.DRINK_OMI) {
-         return 0;
+      if (phase == FarmCycleRuntime.Phase.WAIT_OMI || phase == FarmCycleRuntime.Phase.DRINK_OMI) {
+         FarmCycleRuntime.Snapshot var0 = lastSnapshot;
+         return var0 != null && !var0.omiHotbar() ? 0 : 3;
       }
 
-      FarmCycleRuntime.Snapshot var0 = lastSnapshot;
-      return var0 != null && !var0.omiHotbar() ? 0 : 3;
+      // Khi kiếm đang chờ được cất (STORE_SWORD / STORE_RETURNED_SWORD) mà ominous đã có
+      // trong hotbar, ưu tiên uống ominous trước (priority 3 > sword 1).
+      if (phase == FarmCycleRuntime.Phase.STORE_SWORD || phase == FarmCycleRuntime.Phase.STORE_RETURNED_SWORD) {
+         FarmCycleRuntime.Snapshot var0 = lastSnapshot;
+         return var0 != null && var0.omiHotbar() ? 3 : 0;
+      }
+
+      return 0;
    }
 
    public static int priorityForFirework() {
@@ -359,12 +371,19 @@ public final class FarmCycleRuntime {
          return 0;
       }
 
-      if (phase != FarmCycleRuntime.Phase.WAIT_FIREWORK && phase != FarmCycleRuntime.Phase.USE_FIREWORK) {
-         return 0;
+      if (phase == FarmCycleRuntime.Phase.WAIT_FIREWORK || phase == FarmCycleRuntime.Phase.USE_FIREWORK) {
+         FarmCycleRuntime.Snapshot var0 = lastSnapshot;
+         return var0 != null && !var0.fireworkHotbar() ? 0 : 2;
       }
 
-      FarmCycleRuntime.Snapshot var0 = lastSnapshot;
-      return var0 != null && !var0.fireworkHotbar() ? 0 : 2;
+      // Cho pháo hoa priority 2 khi kiếm đang chờ cất và pháo hoa đã có trong hotbar,
+      // nhưng chỉ khi không có ominous (ominous ưu tiên cao hơn).
+      if (phase == FarmCycleRuntime.Phase.STORE_SWORD || phase == FarmCycleRuntime.Phase.STORE_RETURNED_SWORD) {
+         FarmCycleRuntime.Snapshot var0 = lastSnapshot;
+         return var0 != null && var0.fireworkHotbar() && !var0.omiHotbar() ? 2 : 0;
+      }
+
+      return 0;
    }
 
    public static int priorityForSword() {
@@ -385,7 +404,17 @@ public final class FarmCycleRuntime {
       }
 
       FarmCycleRuntime.Snapshot var0 = lastSnapshot;
-      return var0 != null && !var0.swordHotbar() ? 0 : 1;
+      if (var0 == null || !var0.swordHotbar()) {
+         return 0;
+      }
+
+      // Nhường ưu tiên cho ominous (3) và pháo hoa (2) nếu chúng đang có trong hotbar.
+      // Giữ thứ tự: ominous → pháo hoa → kiếm.
+      if (var0.omiHotbar() || var0.fireworkHotbar()) {
+         return 0;
+      }
+
+      return 1;
    }
 
    public static String phaseName() {

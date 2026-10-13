@@ -13,25 +13,29 @@ public final class ConsumableRecoveryRuntime {
    }
 
    public static void tickHotbarPromotion(Object var0) {
-      if (var0 != null) {
-         String var1;
+      if (var0 != null && isPromotionAllowed()) {
          try {
-            var1 = FarmCycleRuntime.phaseName();
-         } catch (Throwable var3) {
-            return;
-         }
-
-         if (var1 != null) {
-            try {
-               if (var1.equals("WAIT_OMI") || var1.equals("DRINK_OMI")) {
-                  promoteIfNeeded(var0, true);
-               } else if (var1.equals("WAIT_FIREWORK") || var1.equals("USE_FIREWORK")) {
-                  promoteIfNeeded(var0, false);
-               }
-            } catch (Throwable var4) {
-               BehaviorLogRuntime.exception("ConsumableRecoveryRuntime.promote", var4);
+            // Ưu tiên 1: Kéo Ominous Bottle từ inventory (9-35) xuống hotbar nếu hotbar chưa có
+            boolean var1 = promoteIfNeeded(var0, true);
+            // Ưu tiên 2: Kéo Pháo hoa từ inventory (9-35) xuống hotbar nếu hotbar chưa có và không vừa swap ominous
+            if (!var1) {
+               promoteIfNeeded(var0, false);
             }
+         } catch (Throwable var3) {
+            BehaviorLogRuntime.exception("ConsumableRecoveryRuntime.promote", var3);
          }
+      }
+   }
+
+   private static boolean isPromotionAllowed() {
+      try {
+         String var0 = FarmCycleRuntime.phaseName();
+         if (var0 == null) {
+            return true;
+         }
+         return !var0.equals("LOOT_SETTLE") && !var0.equals("SELL") && !var0.equals("VERIFY_SWORD") && !var0.equals("ERROR");
+      } catch (Throwable var1) {
+         return true;
       }
    }
 
@@ -139,7 +143,7 @@ public final class ConsumableRecoveryRuntime {
       return var4;
    }
 
-   private static void promoteIfNeeded(Object var0, boolean var1) throws Exception {
+   private static boolean promoteIfNeeded(Object var0, boolean var1) throws Exception {
       ensureItems();
       Object var2 = ReflectionSupport.field(var0, "field_1724");
       Object var3 = ReflectionSupport.field(var0, "field_1761");
@@ -148,7 +152,7 @@ public final class ConsumableRecoveryRuntime {
          if (var4 != null) {
             for (int var5 = 0; var5 < 9; var5++) {
                if (matches(invokeOneInt(var4, "method_5438", var5), var1)) {
-                  return;
+                  return false;
                }
             }
 
@@ -186,6 +190,7 @@ public final class ConsumableRecoveryRuntime {
 
                   if (var8 < 0) {
                      BehaviorLogRuntime.warning(var1 ? "OMI_PROMOTE_BLOCKED" : "FIREWORK_PROMOTE_BLOCKED", "no safe hotbar slot available");
+                     return false;
                   } else {
                      Object var17 = ReflectionSupport.field(var2, "field_7512");
                      if (var17 != null) {
@@ -199,6 +204,7 @@ public final class ConsumableRecoveryRuntime {
                               G232SafeRuntime.invokeSwapGuarded(var13, var3, new Object[]{var11, var14, var8, var12, var2});
                               lastPromoteMs = var15;
                               BehaviorLogRuntime.warning(var1 ? "OMI_PROMOTED" : "FIREWORK_PROMOTED", "inventorySlot=" + var14 + " -> hotbar=" + var8);
+                              return true;
                            }
                         }
                      }
@@ -207,13 +213,21 @@ public final class ConsumableRecoveryRuntime {
             }
          }
       }
+      return false;
    }
 
    private static boolean matches(Object var0, boolean var1) {
       try {
          if (var0 != null && !isEmpty(var0)) {
             Object var2 = ReflectionSupport.callNoArg(var0, "method_7909");
-            return !var1 ? var2 == fireworkRocket : var2 == ominousBottle || var2 != null && "net.minecraft.class_9462".equals(var2.getClass().getName());
+            if (var2 == null) {
+               return false;
+            }
+            if (var1) {
+               return var2 == ominousBottle || "net.minecraft.class_9462".equals(var2.getClass().getName()) || String.valueOf(var2).contains("ominous_bottle");
+            } else {
+               return var2 == fireworkRocket || String.valueOf(var2).contains("firework_rocket");
+            }
          } else {
             return false;
          }
