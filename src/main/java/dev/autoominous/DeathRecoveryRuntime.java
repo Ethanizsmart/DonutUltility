@@ -79,8 +79,7 @@ public final class DeathRecoveryRuntime {
             } else if (recoveryPending) {
                if (postDeathSellPending) {
                   net.minecraft.class_310 client = (net.minecraft.class_310)var0;
-                  if (!SlashSellSettings.isEnabled()
-                     || var1 != postDeathSellPlayer
+                  if (var1 != postDeathSellPlayer
                      || client.method_1562() != postDeathSellConnection
                      || com.seastore.auto.seaats.client.AutoSellLogic.isInventorySellComplete(client)) {
                      clearState();
@@ -141,11 +140,6 @@ public final class DeathRecoveryRuntime {
    }
 
    private static void beginPostDeathSell(Object client, Object player) {
-      CompactSlashSellSettings.syncToOriginal();
-      if (!SlashSellSettings.isEnabled()) {
-         clearState();
-         return;
-      }
       SlashSellRuntime.resetRuntime();
       postDeathSellPending = true;
       postDeathSellPlayer = player;

@@ -14,6 +14,18 @@ public final class SlashSellRuntime {
    }
 
    public static void onTick() {
+      boolean prioritySell = DeathRecoveryRuntime.isPostDeathSellPending();
+      try {
+         tickSell(prioritySell);
+      } finally {
+         // The one-off recovery sale must not enable the user's regular Auto /sell toggle.
+         if (prioritySell && !SlashSellSettings.isEnabled()) {
+            setSeaBoolean("isAutoSellEnabled", false);
+         }
+      }
+   }
+
+   private static void tickSell(boolean prioritySell) {
       if (!MasterAutomation.isEnabled()) {  return; }
       invokeStaticVoid("dev.autoominous.SlashSellSettings", "maybePersist");
       syncSeaConfig();
@@ -35,7 +47,7 @@ public final class SlashSellRuntime {
          initialized = true;
       }
 
-      if (!var0) {
+      if (!var0 && !prioritySell) {
          recoverySuspended = false;
       } else {
          Object var8 = getMinecraftClient();
@@ -48,7 +60,7 @@ public final class SlashSellRuntime {
                   recoverySuspended = false;
                }
 
-               setSeaBoolean("isAutoSellEnabled", HumanizedSellRuntime.shouldEnableSeaAutoSell());
+               setSeaBoolean("isAutoSellEnabled", prioritySell || HumanizedSellRuntime.shouldEnableSeaAutoSell());
 
                try {
                   Object var4 = getDeclaredField(var8.getClass(), var8, "field_1755");
