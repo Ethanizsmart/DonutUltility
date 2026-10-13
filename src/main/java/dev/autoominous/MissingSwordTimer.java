@@ -10,7 +10,7 @@ final class MissingSwordTimer {
          return false;
       }
       if (missingSinceMs < 0L || nowMs < missingSinceMs) missingSinceMs = nowMs;
-      return nowMs - missingSinceMs >= 5000L;
+      return nowMs - missingSinceMs >= 15000L;
    }
 
    void reset() {

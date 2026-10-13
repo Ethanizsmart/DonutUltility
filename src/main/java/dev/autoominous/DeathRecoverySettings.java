@@ -17,7 +17,7 @@ import java.util.Properties;
 public final class DeathRecoverySettings {
    public static final ConfigBoolean AUTO_DEATH_RECOVERY = new ConfigBoolean("Auto Death Recovery", false);
    public static final ConfigBoolean RECOVER_SWORD_AFTER_DEATH = new ConfigBoolean("Auto Buy Sword", true,
-      "Buy a Diamond Sword with Looting III after 5 seconds of continuous absence. Independent of Auto Death Recovery.");
+      "Buy a Diamond Sword with Looting III after 15 seconds of continuous absence. Independent of Auto Death Recovery.");
    public static final ConfigBoolean HOME_1_POSITION_GUARD = new ConfigBoolean("Home 1 Position + Look Guard", false,
       "Return to Home 1 when position or yaw/pitch differs from the saved Home 1 pose. Requires a captured anchor and Master ON.");
    public static final ConfigDouble HOME_POSITION_TOLERANCE = new ConfigDouble("Home Position Tolerance (blocks)", 0.3, 0.01, 5.0);

@@ -74,9 +74,9 @@ public final class SwordRecoveryRuntime {
       }
       long now = System.currentTimeMillis();
       if (!recoveryActive) {
-         boolean absentForFiveSeconds = missingSwordTimer.update(findLootingDiamondSword(client, true) < 0, now);
+         boolean absentForFifteenSeconds = missingSwordTimer.update(findLootingDiamondSword(client, true) < 0, now);
          // Keep observing inventory during /sell, but wait for its screen to close before buying.
-         if (!absentForFiveSeconds || client.field_1755 != null) return;
+         if (!absentForFifteenSeconds || client.field_1755 != null) return;
          recoveryActive = true;
          state = State.CHECK_LOCAL;
          nextActionAtMs = now;

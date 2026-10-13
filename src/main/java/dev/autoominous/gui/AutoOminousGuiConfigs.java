@@ -60,7 +60,7 @@ public final class AutoOminousGuiConfigs extends GuiConfigsBase {
             HomePositionGuardRuntime.saveCurrentPose();
             this.initGui();
          });
-         String var1 = MissingSwordWatchdogSettings.isEnabled() ? "§aAuto Buy Sword (5s): ON" : "§cAuto Buy Sword (5s): OFF";
+         String var1 = MissingSwordWatchdogSettings.isEnabled() ? "§aAuto Buy Sword (15s): ON" : "§cAuto Buy Sword (15s): OFF";
          this.addButton(new ButtonGeneric(10, 72, 290, 20, var1, new String[0]), (var1x, var2x) -> {
             MissingSwordWatchdogSettings.toggleFromGui();
             this.reCreateListWidget();

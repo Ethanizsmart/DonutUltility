@@ -1,6 +1,6 @@
 package dev.autoominous;
 
-/** Legacy API compatibility: the single five-second buyer now owns sword purchases. */
+/** Legacy API compatibility: the single fifteen-second buyer now owns sword purchases. */
 public final class MissingSwordWatchdogRuntime {
    private MissingSwordWatchdogRuntime() {}
    public static boolean isPurchaseActive() { return SwordRecoveryRuntime.isRecoveryActive(); }
