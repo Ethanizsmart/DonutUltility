@@ -58,15 +58,15 @@ public final class SwordRecoveryRuntime {
          forceReset();
          return;
       }
-      if (HomePositionGuardRuntime.isBlockingAutomation() || BountyRuntime.isBlockingSell()) {
+      if (HomePositionGuardRuntime.isBlockingAutomation() || BountyRuntime.isBlockingSell() || HotbarRefillRuntime.isRefilling()) {
          missingSwordTimer.reset();
          return;
       }
       long now = System.currentTimeMillis();
       if (!recoveryActive) {
-         boolean absentForFiveSeconds = missingSwordTimer.update(findLootingDiamondSword(client, true) < 0, now);
+         boolean absentForRequiredTime = missingSwordTimer.update(findLootingDiamondSword(client, true) < 0, now);
          // Keep observing inventory during /sell, but wait for its screen to close before buying.
-         if (!absentForFiveSeconds || client.field_1755 != null) return;
+         if (!absentForRequiredTime || client.field_1755 != null) return;
          recoveryActive = true;
          state = State.CHECK_LOCAL;
          nextActionAtMs = now;
@@ -271,7 +271,8 @@ public final class SwordRecoveryRuntime {
                   }
             }
          } catch (Throwable var12) {
-            System.err.println("[Donut Utility] Auction sword recovery: " + var12.getClass().getSimpleName());
+            System.err.println("[Donut Utility] Auction sword recovery: " + var12);
+            var12.printStackTrace();
             reopenAuction(var4, var2);
          }
 

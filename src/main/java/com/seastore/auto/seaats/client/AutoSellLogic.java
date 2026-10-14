@@ -132,16 +132,9 @@ public class AutoSellLogic {
             if (var3 == knownSellHandler) {
                return true;
             } else {
-               int var4 = var3.field_7761.size() - 36;
-               if (var4 < 0) {
-                  var4 = var3.field_7761.size();
-               }
-
-               for (int var5 = 0; var5 < var4; var5++) {
-                  if (var3.method_7611(var5).method_7677().method_31574(class_1802.field_8581)) {
-                     knownSellHandler = var3;
-                     return true;
-                  }
+               if (HumanizedSellRuntime.findConfirmSlot(var3) >= 0) {
+                  knownSellHandler = var3;
+                  return true;
                }
 
                return false;
@@ -160,6 +153,11 @@ public class AutoSellLogic {
          && client.field_1755 == null
          && !hasActiveMenu(client)
          && !hasInventoryItems(client);
+   }
+
+   public static boolean isBusy() {
+      return currentState != State.IDLE || antiState != AntiPlayerState.IDLE
+         || isPaying || isGhostFixing || isHomeRecovering;
    }
 
    private static List<class_1657> getNearbyPlayers(class_310 var0, double var1) {
@@ -209,6 +207,7 @@ public class AutoSellLogic {
    }
 
    static void closeAllGui(class_310 var0) {
+      HumanizedSellRuntime.forceReset();
       knownSellHandler = null;
       sellContentsDeadlineNanos = 0L;
       if (hasActiveMenu(var0)) {
@@ -255,6 +254,7 @@ public class AutoSellLogic {
    }
 
    private static void resetSellControl() {
+      HumanizedSellRuntime.forceReset();
       currentState = AutoSellLogic.State.IDLE;
       tickDelay = 0;
       lastSellCommandSentMs = 0L;
@@ -275,7 +275,7 @@ public class AutoSellLogic {
          int var2 = Math.max(0, var1.field_7761.size() - 36);
 
          for (int var3 = 0; var3 < var2; var3++) {
-            if (var1.method_7611(var3).method_7677().method_31574(class_1802.field_8581)) {
+            if (HumanizedSellRuntime.isConfirmSlot(var1, var3)) {
                sellContentsDeadlineNanos = 0L;
                return false;
             }
@@ -428,7 +428,8 @@ public class AutoSellLogic {
                            resetSellControl();
                         }
                      } else {
-                        if (currentState != AutoSellLogic.State.WAITING_GUI_OPEN && waitForSellContents(var0)) {
+                        if (currentState != AutoSellLogic.State.WAITING_GUI_OPEN
+                           && currentState != AutoSellLogic.State.CLICK_CONFIRM_DELAYED && waitForSellContents(var0)) {
                            return;
                         }
 
@@ -451,6 +452,7 @@ public class AutoSellLogic {
                               if (currentState == AutoSellLogic.State.WAITING_GUI_OPEN) {
                                  currentState = AutoSellLogic.State.MOVING_ITEMS;
                                  tickDelay = 2;
+                                 return;
                               }
                            }
 
@@ -472,89 +474,17 @@ public class AutoSellLogic {
                               default:
                                  break;
                               case MOVING_ITEMS:
-                                 if (!isSellGuiOpen(var0)) {
-                                    currentState = AutoSellLogic.State.IDLE;
-                                    tickDelay = 10;
-                                    sellCommandRetryCount = 0;
-                                 } else {
-                                    class_1703 var10 = ((class_465)var0.field_1755).method_17577();
-                                    int var13 = var10.field_7761.size() - 36;
-                                    if (var13 < 0) {
-                                       var13 = var10.field_7761.size();
-                                    }
-
-                                    int var15 = 0;
-                                    int var17 = 0;
-
-                                    for (; var17 < var13; var17++) {
-                                       class_1799 var6 = var10.method_7611(var17).method_7677();
-                                       if (!var6.method_7960() && !var6.method_31574(class_1802.field_8581)) {
-                                          var15++;
-                                       }
-                                    }
-
-                                    if (var15 < 45 && var13 - var15 > 1) {
-                                       var17 = var10.field_7761.size() - 36;
-                                       if (var17 < 0) {
-                                          var17 = 0;
-                                       }
-
-                                       boolean var19 = false;
-
-                                       for (int var7 = var17; var7 < var10.field_7761.size(); var7++) {
-                                          if (isSellableInventorySlot(var0, var10.method_7611(var7))) {
-                                             var0.field_1761.method_2906(var10.field_7763, var7, 0, class_1713.field_7794, var0.field_1724);
-                                             var19 = true;
-                                          }
-                                       }
-
-                                       if (var19) {
-                                          tickDelay = 2;
-                                       } else {
-                                          currentState = AutoSellLogic.State.CLICK_CONFIRM;
-                                          tickDelay = 3;
-                                       }
-                                    } else {
-                                       currentState = AutoSellLogic.State.CLICK_CONFIRM;
-                                       tickDelay = 3;
-                                    }
-                                 }
+                                 HumanizedSellRuntime.tickMoving(var0);
                                  break;
                               case CLICK_CONFIRM:
-                                 if (!isSellGuiOpen(var0)) {
-                                    currentState = AutoSellLogic.State.IDLE;
-                                 } else {
-                                    class_1703 var2 = ((class_465)var0.field_1755).method_17577();
-                                    int var3 = -1;
-                                    int var4 = var2.field_7761.size() - 36;
-                                    if (var4 < 0) {
-                                       var4 = var2.field_7761.size();
-                                    }
-
-                                    for (int var5 = 0; var5 < var4; var5++) {
-                                       if (var2.method_7611(var5).method_7677().method_31574(class_1802.field_8581)) {
-                                          var3 = var5;
-                                          break;
-                                       }
-                                    }
-
-                                    if (var3 != -1) {
-                                       expectedSellReceiptTicks = 200;
-                                       var0.field_1761.method_2906(var2.field_7763, var3, 0, class_1713.field_7790, var0.field_1724);
-                                       lastSellTimeMs = System.currentTimeMillis();
-                                       sellCommandRetryCount = 0;
-                                       tickDelay = 6;
-                                       currentState = AutoSellLogic.State.CLICK_CONFIRM_DELAYED;
-                                    } else {
-                                       currentState = AutoSellLogic.State.IDLE;
-                                       tickDelay = 10;
-                                    }
+                                 if (HumanizedSellRuntime.tickConfirm(var0)) {
+                                    expectedSellReceiptTicks = 200;
+                                    lastSellTimeMs = System.currentTimeMillis();
+                                    sellCommandRetryCount = 0;
                                  }
                                  break;
                               case CLICK_CONFIRM_DELAYED:
-                                 closeAllGui(var0);
-                                 currentState = AutoSellLogic.State.IDLE;
-                                 tickDelay = 6;
+                                 HumanizedSellRuntime.tickAfterConfirm(var0);
                            }
 
                            if (Config.isAutoSellEnabled) {
@@ -1047,13 +977,33 @@ public class AutoSellLogic {
    }
 
    static boolean isSellableInventoryItem(class_1799 stack, int inventoryIndex) {
-      return InventorySellRules.canSell(stack.method_7960(), isProtectedHotbarItem(stack), inventoryIndex);
+      if (stack.method_7960() || inventoryIndex < 0 || inventoryIndex >= 36) return false;
+      if (isOminous(stack)) {
+         class_310 client = class_310.method_1551();
+         int reserve = reservedOminousIndex(client);
+         return reserve >= 0 && (inventoryIndex != reserve || stack.method_7947() > 1);
+      }
+      return InventorySellRules.canSell(false, isProtectedHotbarItem(stack), inventoryIndex);
    }
 
    static boolean isSellableInventorySlot(class_310 client, class_1735 slot) {
       return client.field_1724 != null
          && slot.field_7871 == client.field_1724.method_31548()
-         && isSellableInventoryItem(slot.method_7677(), slot.method_34266());
+         && isSellableInventoryItem(slot.method_7677(), slot.method_34266())
+         && (!isOminous(slot.method_7677()) || slot.method_34266() != reservedOminousIndex(client));
+   }
+
+   static boolean isOminous(class_1799 stack) {
+      return !stack.method_7960() && stack.method_7909().getClass().getName().equals("net.minecraft.class_9462");
+   }
+
+   static int reservedOminousIndex(class_310 client) {
+      if (client == null || client.field_1724 == null) return -1;
+      class_1661 inventory = client.field_1724.method_31548();
+      int selected = inventory.method_67532();
+      if (selected >= 0 && selected < 9 && isOminous(inventory.method_5438(selected))) return selected;
+      for (int i = 0; i < 36; i++) if (isOminous(inventory.method_5438(i))) return i;
+      return -1;
    }
 
    static boolean isProtectedHotbarItem(class_1799 var0) {

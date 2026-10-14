@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-version = '1.1.7'
+version = '1.1.8'
 group = 'dev.autoominous'
 
 repositories {
@@ -77,3 +77,15 @@ tasks.register('verifyInventorySellRules', JavaExec) {
     mainClass = 'com.seastore.auto.seaats.client.InventorySellRulesChecks'
 }
 tasks.named('check') { dependsOn 'verifyInventorySellRules' }
+tasks.register('verifySellActions', JavaExec) {
+    dependsOn auctionChecksClasses
+    classpath = sourceSets.auctionChecks.runtimeClasspath
+    mainClass = 'com.seastore.auto.seaats.client.SellActionsRuntimeChecks'
+}
+tasks.named('check') { dependsOn 'verifySellActions' }
+tasks.register('verifyHotbarRefillRules', JavaExec) {
+    dependsOn auctionChecksClasses
+    classpath = sourceSets.auctionChecks.runtimeClasspath
+    mainClass = 'dev.autoominous.HotbarRefillRulesChecks'
+}
+tasks.named('check') { dependsOn 'verifyHotbarRefillRules' }

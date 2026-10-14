@@ -5,7 +5,7 @@ public final class InventorySellRulesChecks {
 
    public static void main(String[] args) {
       for (int index = 0; index < 36; index++) {
-         check(InventorySellRules.canSell(false, true, index) == (index >= 9),
+         check(!InventorySellRules.canSell(false, true, index),
             "Protected sword/firework/bottle at inventory index " + index);
          check(InventorySellRules.canSell(false, false, index),
             "Ordinary item remains sellable at inventory index " + index);

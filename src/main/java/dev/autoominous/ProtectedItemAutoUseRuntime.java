@@ -36,7 +36,7 @@ public final class ProtectedItemAutoUseRuntime {
                return;
             }
 
-            if (isExternalSafetyBusy() || isSeaBusy()) {
+            if (isExternalSafetyBusy() || isSeaBusy() || HotbarRefillRuntime.isRefilling()) {
                release(var0);
                resetActive();
                return;

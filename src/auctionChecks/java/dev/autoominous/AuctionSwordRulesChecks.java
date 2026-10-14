@@ -9,14 +9,14 @@ public final class AuctionSwordRulesChecks {
    public static void main(String[] args) {
       MissingSwordTimer timer = new MissingSwordTimer();
       check(!timer.update(true, 1000L), "Missing sword starts observation");
-      check(!timer.update(true, 5999L), "Do not buy before five seconds");
-      check(timer.update(true, 6000L), "Buy at five seconds of continuous absence");
-      check(!timer.update(false, 6100L), "Sword arriving cancels observation");
-      check(!timer.update(true, 6200L), "New absence starts fresh");
+      check(!timer.update(true, 15999L), "Do not buy before fifteen seconds");
+      check(timer.update(true, 16000L), "Buy at fifteen seconds of continuous absence");
+      check(!timer.update(false, 16100L), "Sword arriving cancels observation");
+      check(!timer.update(true, 16200L), "New absence starts fresh");
       timer.reset();
       check(!timer.update(true, 20000L), "Death/disconnect/toggle reset requires fresh window");
       check(!timer.update(true, 19000L), "Clock rollback restarts observation");
-      check(timer.update(true, 24000L), "Fresh window completes after rollback");
+      check(timer.update(true, 34000L), "Fresh window completes after rollback");
       expectPrice(5_000_000L, "Price: $5,000,000");
       expectPrice(5_000_000L, "§aPrice: §f$5M");
       expectPrice(4_750_000L, "Price: $4.75M");

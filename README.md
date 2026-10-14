@@ -80,7 +80,25 @@ các thay đổi source và mức sẵn sàng phát triển.
 
 Master automation: starts OFF on every game launch. Press F8 to toggle all configured automation. The master key can be changed in the Utility GUI (X+C), under Toggle All Automation. Turning OFF cancels pending work and releases item use; individual feature settings are preserved.
 
-Auto sell: Ominous Bottles in the 27 main inventory slots are sold; Ominous Bottles in the 9 hotbar slots remain protected.
+Auto sell follows the CoreV2 action reference in `SellActions-CoreV2-original-logic.zip`
+and `SELL_ACTIONS_LOGIC_VI.md` in the workspace parent. It chooses nearby sources with
+varying tick pauses and Shift-clicks exact item/component matches as a group, bounded
+by the initial free capacity in the first 45 sell slots. After one left-click confirm,
+it waits six ticks and polls the batch before continuing in the same menu or closing
+the server container. A confirm click alone does not count as a server sale receipt.
+
+Protected swords/items are retained in all 36 inventory slots. Exactly one Ominous
+Bottle is retained, preferring the selected hotbar slot, then the other hotbar slots,
+then main inventory. A reserved stack is split with left-click source, right-click
+source, left-click empty sell slot; all surplus bottles may be sold. Inventory probes
+and post-death completion checks use this same protection policy. Post-death selling
+still runs even when regular Auto /sell is OFF.
+
+`gradlew.bat verifySellActions` runs the production transfer/rhythm code with offline
+Minecraft click fixtures and the production inventory/menu predicates. It checks grouped
+transfers, capacity, components, bottle splitting/recovery, cursor safety, menu ownership,
+single confirm, polling, continuation and timeouts. It is included in `build`; live
+server timing and sale receipts still require an in-game test.
 
 Sword recovery after death now uses `/ah sword looting 3` instead of `/order`.
 After the home position settles, it checks for an existing Diamond Sword with actual Looting III.
@@ -90,3 +108,6 @@ Listings with missing, ambiguous or unsupported prices are skipped. Prices suppo
 Purchase confirmation supports both container menus and the native Yes/No dialog titled "Are you sure you want to buy this?". The displayed sword must match the selected Looting III sword, and the displayed price must equal the selected price and remain at or below $5,000,000. For the native dialog, action buttons are found recursively inside the scrollable body and the real Yes button callback is invoked once; recovery then waits for the inventory update before proceeding. Missing or conflicting prices are not confirmed. Unrecognized confirmations are closed and the search retries.
 If no suitable listing is found, menus time out, or purchase verification fails, the search repeats with a 2–3 second pause. Recovery finishes only after a verified Looting III Diamond Sword is in the hotbar.
 `gradlew.bat verifyAuctionSwordRules` runs the offline price/filter regression checks (also included in `build`). Live debugger inspection verified the actual purchase dialog title, matching Looting III enchantments, $1.5M price, and Yes/No buttons nested inside the scrollable body. After the recursive button fix, the Yes callback completed and recovery entered VERIFY_PURCHASE. Auto-use debugging verified hotbar sword selection, use-key holding and repeat calls. End-to-end receipt was not captured in that debug session; the user subsequently confirmed the current version was working.
+
+Hotbar refill (`HotbarRefillRuntime`): keeps hotbar slot 1 (Looting III sword), slot 2 (Ominous Bottle), and slot 3 (Firework Rocket). Opens player inventory screen, swaps items via `SWAP` after 50ms, closes screen, and enforces a 400ms cooldown. Absence detection for sword recovery is set to 15 seconds.
+

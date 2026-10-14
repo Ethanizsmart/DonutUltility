@@ -6,6 +6,6 @@ public final class InventorySellRules {
 
    public static boolean canSell(boolean empty, boolean protectedItem, int inventoryIndex) {
       if (empty || inventoryIndex < 0 || inventoryIndex >= 36) return false;
-      return !protectedItem || inventoryIndex >= 9;
+      return !protectedItem;
    }
 }

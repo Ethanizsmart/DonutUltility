@@ -2,6 +2,7 @@ package dev.autoominous.mixin;
 
 import dev.autoominous.AutoSellRuntime;
 import dev.autoominous.HomePositionGuardRuntime;
+import dev.autoominous.HotbarRefillRuntime;
 import dev.autoominous.ProtectedItemAutoUseRuntime;
 import dev.autoominous.VexSafetyRuntime;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,6 +17,7 @@ public abstract class MinecraftTickMixin {
       VexSafetyRuntime.onTick();
       HomePositionGuardRuntime.onTick();
       AutoSellRuntime.onTick();
+      HotbarRefillRuntime.onTick();
       ProtectedItemAutoUseRuntime.onTick();
    }
 }

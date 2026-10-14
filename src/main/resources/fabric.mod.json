@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "donututility",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "name": "Donut Utility",
-  "description": "Standalone Donut SMP client utility: Auto TPA, Disconnect Handling with optional Auto Reconnect, Death Recovery, independent Auction sword purchase after five seconds without a Looting III diamond sword, /sell automation, and Auto Bounty with exclusive container-GUI ownership during bounty transactions.",
+  "description": "Standalone Donut SMP client utility: Auto TPA, Disconnect Handling with optional Auto Reconnect, Death Recovery, independent Auction sword purchase after 15 seconds without a Looting III diamond sword, hotbar refill, /sell automation, and Auto Bounty with exclusive container-GUI ownership during bounty transactions.",
   "authors": [
     "OpenAI for user-requested project"
   ],
